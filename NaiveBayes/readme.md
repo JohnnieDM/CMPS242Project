@@ -1,6 +1,11 @@
 # Naive Bayes
 All our work is based on this [article](http://rstudio-pubs-static.s3.amazonaws.com/155272_c91116f9fd774349bef82cb154b62f5c.html)
 ## Preprocess
+Tools we need:
+- pandas
+```
+sudo pip install pandas
+```
 Data we need:  
 - yelp_academic_dataset_business.json
 - yelp_academic_dataset_review.json

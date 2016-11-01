@@ -28,7 +28,7 @@ for s in star:
 		sentiment.append(1)
 business['categories'] = newCategories
 mergeBusRev = pd.merge(business, review, on = 'business_id')
-NaiveBayesData = pd.concat([NaiveBayesData, pd.DataFrame({'sentiment':sentiment})],axis = 1)
-NaiveBayesData.to_csv('NaiveBayesData.csv')
+NaiveBayesData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment':sentiment})],axis = 1)
+NaiveBayesData.to_csv('NaiveBayesData.csv',index=False)
 
 	
