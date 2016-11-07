@@ -24,3 +24,6 @@ The attributes in this file are:
 - text
 - sentiment
 
+##Process
+Run the file NaiveBayesProcess.py  
+We use NaiveBayesData.csv as training dataset and NaiveBayesData2.csv as testing dataset  
