@@ -18,15 +18,14 @@ texts = review['text'].to_dict()
 texts2 = {}
 count=0
 size = len(texts.items())
-stops = set(stopwords.words('english'))
+stops = set([str(w) for w in stopwords.words('english')])
 
 for key, text in texts.items():
   count+=1
   if count % 1000 == 1:
     sys.stdout.write("%2.f" % (100.0 * count/size) + '%, completed: '+str(count)+'/'+str(size)+'\r')
     sys.stdout.flush()
-  texts2[key] = [word.lower() for word in re.findall('[^\d\W]+', text) if word not in stops]
-  #texts2[key] = [word.lower() for word in nltk.word_tokenize(text)]
+  texts2[key] = [word.lower() for word in re.findall('[^\d\W]+', text) if word.lower() not in stops]
 review['text'] = pd.Series(texts2)
 
 #bids = review['business_id'].get_values()
