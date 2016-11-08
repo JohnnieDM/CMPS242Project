@@ -27,3 +27,10 @@ The attributes in this file are:
 ##Process
 Run the file NaiveBayesProcess.py  
 We use NaiveBayesData.csv as training dataset and NaiveBayesData2.csv as testing dataset  
+
+##Result:
+True Positive:   19521  
+False Positive:  5080  
+True Negative:   445  
+False Negative:  1805  
+Frequent words are in the file PositiveFrequentWords.txt and NegativeFrequentWords.txt
