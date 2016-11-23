@@ -5,16 +5,7 @@ import math
 import re
 import pandas as pd
 import numpy as np
-
-Data = pd.read_csv('NaiveBayesData.csv')
-NBData = Data[['text','sentiment']]
-NBData_1 = NBData[NBData.sentiment==1]
-NBData_0 = NBData[NBData.sentiment==0]
-bow = [{},{}]
-N = NBData.count()[0]
-N_ = [NBData_0.count()[0], NBData_1.count()[0]]
-Prior = [N_[0]/float(N), N_[1]/float(N)]
-N_words_ = [0, 0]
+import word_category_counter
 
 def countWords(row):
 	Class = row[1]
@@ -23,26 +14,9 @@ def countWords(row):
 		bow[Class][word] = bow[Class].get(word,0) + 1.0
 		N_words_[Class]+=1
 
-
-NBData.apply(countWords, axis = 1)
-
-wordB=len(set(bow[0].keys()+bow[1].keys()))
-
-for i in range(len(bow)):
-	for word in bow[i]:
-		bow[i][word]=(float(bow[i][word])+1)/(N_words_[i]+wordB)
-
-TestData = pd.read_csv('NaiveBayesData2.csv')
-A = math.log(Prior[1],10)-math.log(Prior[0],10)
-
-TruePositive = 0
-FalsePositive = 0
-TrueNegative = 0
-FalseNegative = 0
-# A -> prior , B -> sum of the class 1, C -> sum of the class 0
 def applyNaiveBayes(row):
 	Class = row[1]
-	Sentence = row[0].strip(' []').split(', ')	
+	Sentence = row[0].strip(' []').split(', ')
 	B = 0
 	C = 0
 	for word in Sentence:
@@ -75,11 +49,53 @@ def applyNaiveBayes(row):
 			FalsePositive+=1
 		else:
 			FalseNegative+=1
-NBTestData = TestData[['text','sentiment']]
-NBTestData.apply(applyNaiveBayes, axis=1)
 
-print "True Positive:  ", TruePositive
-print "False Positive: ", FalsePositive
-print "True Negative:  ", TrueNegative
-print "False Negative: ", FalseNegative
+def add_liwc_features(text, feature_vector):
+	liwc_scores = word_category_counter.score_text(text)
+	# All possible keys to the scores start on line 269
+	# of the word_category_counter.py script
+	for key in liwc_scores.keys():
+		feature_vector["liwc:"+key] = liwc_scores[key]
 
+	negative_score = liwc_scores["Negative Emotion"]
+	positive_score = liwc_scores["Positive Emotion"]
+
+	if positive_score > negative_score:
+		feature_vector["liwc:positive"] = 1
+	else:
+		feature_vector["liwc:negative"] = 1
+
+if( __name__ == '__main__'):
+	Data = pd.read_csv('NaiveBayesData.csv')
+	NBData = Data[['text','sentiment']]
+	NBData_1 = NBData[NBData.sentiment==1]
+	NBData_0 = NBData[NBData.sentiment==0]
+	bow = [{},{}]
+	N = NBData.count()[0]
+	N_ = [NBData_0.count()[0], NBData_1.count()[0]]
+	Prior = [N_[0]/float(N), N_[1]/float(N)]
+	N_words_ = [0, 0]
+
+	NBData.apply(countWords, axis = 1)
+
+	wordB=len(set(bow[0].keys()+bow[1].keys()))
+
+	for i in range(len(bow)):
+		for word in bow[i]:
+			bow[i][word]=(float(bow[i][word])+1)/(N_words_[i]+wordB)
+
+	TestData = pd.read_csv('NaiveBayesData2.csv')
+	A = math.log(Prior[1],10)-math.log(Prior[0],10)
+
+	TruePositive = 0
+	FalsePositive = 0
+	TrueNegative = 0
+	FalseNegative = 0
+	# A -> prior , B -> sum of the class 1, C -> sum of the class 0
+	NBTestData = TestData[['text','sentiment']]
+	NBTestData.apply(applyNaiveBayes, axis=1)
+
+	print "True Positive:  ", TruePositive
+	print "False Positive: ", FalsePositive
+	print "True Negative:  ", TrueNegative
+	print "False Negative: ", FalseNegative
