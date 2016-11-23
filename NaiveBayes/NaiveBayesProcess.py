@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 
 Data = pd.read_csv('NaiveBayesData.csv')
+# we remove commonStopWords that appear in both positive and negative sentiments text
+
 NBData = Data[['text','sentiment']]
 NBData_1 = NBData[NBData.sentiment==1]
 NBData_0 = NBData[NBData.sentiment==0]
