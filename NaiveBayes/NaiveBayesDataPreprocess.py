@@ -61,5 +61,5 @@ for s in star:
 business['categories'] = newCategories
 mergeBusRev = pd.merge(business, review, on = 'business_id')
 NaiveBayesData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment':sentiment})],axis = 1)
-NaiveBayesData.to_csv('NaiveBayesData2.csv',index=False, encoding='utf-8')
+NaiveBayesData.to_pickle('NaiveBayesData.pickle')
 
