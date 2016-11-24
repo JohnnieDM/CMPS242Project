@@ -6,6 +6,8 @@ from nltk.util import ngrams
 import time
 import sys  
 import argparse
+import word_category_counter
+import os
 
 stops = set([str(w) for w in stopwords.words('english')])
 
@@ -58,57 +60,62 @@ def generate_ngram_feats(unigram_activated, bigram_activated, review):
   return all_tokens
 
 
-def generate_liwc_feature(activated):
+def add_liwc_features(text, feature_vector):
   """
-  Generate LIWC features
+  Args:
+      (string)text: some text input
+      (dict)feature_vector: a dict of features
+
+  Returns:
+      Modified feature vector
+
   """
-  pass
+  liwc_scores = word_category_counter.score_text(text)
+  # All possible keys to the scores start on line 269
+  # of the word_category_counter.py script
+  for key in liwc_scores.keys():
+      feature_vector["liwc:"+key] = liwc_scores[key]
 
+  negative_score = liwc_scores["Negative Emotion"]
+  positive_score = liwc_scores["Positive Emotion"]
 
+  if positive_score > negative_score:
+      feature_vector["liwc:positive"] = 1
+  else:
+      feature_vector["liwc:negative"] = 1
 
+def getData():
+  if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_review.pkl")):
+    review = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_review.pkl"))
+  else:
+    review = pd.read_csv('yelp_academic_dataset_review.csv', encoding='utf-8')[['business_id', 'stars', 'text']].sample(
+      frac=0.01, replace=False)
+    review.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_review.pkl"))
 
-if __name__ == "__main__":
-  # Each argument is parsed as a boolean which defaults to False when not given.
-  parser = argparse.ArgumentParser(description="Specify feature types")
-  parser.add_argument("-u", "--unigram", help="activate the unigram feature",
-                    action="store_true")
-  parser.add_argument("-b", "--bigram", help="activate the bigram feature",
-                    action="store_true")
-  parser.add_argument("-l", "--liwc", help="activate the LIWC feature",
-                    action="store_true")
-  args = parser.parse_args()
-  if args.unigram:
-    print "unigram feature activated"
-  if args.bigram:
-    print "bigram feature activated"
-  if args.liwc:
-    print "LIWC feature activated"
-
-  # Read in the CSV of reviews, only using 1% of the data.
-  review = pd.read_csv('yelp_academic_dataset_review.csv', encoding='utf-8')[['business_id','stars','text']].sample(frac=0.01, replace=False)
-  print "read_csv completed"
-
-  # Feature: Generate unigram and bigram features if activated.
-  # Also collect set of tokens in all reviews.
-  unique_tokens = generate_ngram_feats(args.unigram, args.bigram, review)
-
-  sorted(list(unique_tokens))
-
-  # Feature: Generate LIWC features if activated.
-  generate_liwc_feature(args.liwc)
-
-  # Read the business CSV here to avoid memory problem.
-  business = pd.read_csv('yelp_academic_dataset_business.csv', low_memory=False, encoding='utf-8')[['business_id','name','categories']]
-
-  # Process categories: use the most frequent to be the category for each review.
+  if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl")):
+    business = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl"))
+  else:
+    business = pd.read_csv('yelp_academic_dataset_business.csv', low_memory=False, encoding='utf-8')[
+    ['business_id', 'name', 'categories']]
+    business.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl"))
   categories = business['categories']
   star = review['stars']
+
+  sentiment = []
+  for s in star:
+    if s <= 2:
+      sentiment.append(0)
+    else:
+      sentiment.append(1)
+  return review, business, categories, sentiment
+
+def pickMaxCat():
   countCate = {}
   for c in categories:
     cateList = c.split(",")
     for cate in cateList:
       element = cate.strip(" '[]")
-      countCate[element] = countCate.get(element,0)+1
+      countCate[element] = countCate.get(element, 0) + 1
   newCategories = []
   for c in categories:
     cateList = c.split(",")
@@ -116,20 +123,45 @@ if __name__ == "__main__":
     finalCate = ""
     for cate in cateList:
       element = cate.strip(" '[]")
-      if maxCate<countCate[element]:
+      if maxCate < countCate[element]:
         finalCate = element
         maxCate = countCate[element]
     newCategories.append(finalCate)
-
-  # Label: positive 1, negative 0.
-  # Define positive to be >2 stars, negative to be <=2 stars.
-  sentiment = []
-  for s in star:
-    if s<=2:
-      sentiment.append(0)
-    else:
-      sentiment.append(1)
   business['categories'] = newCategories
+
+def init():
+  parser = argparse.ArgumentParser(description="Specify feature types")
+  parser.add_argument("-u", "--unigram", help="activate the unigram feature",
+                      action="store_true")
+  parser.add_argument("-b", "--bigram", help="activate the bigram feature",
+                      action="store_true")
+  parser.add_argument("-l", "--liwc", help="activate the LIWC feature",
+                      action="store_true")
+  parser.add_argument("-a", "--all", help="create maximum combos and pickle each",
+                      action="store_true")
+  parser.add_argument("-t", "--tfidf", help="use tfidf frequency count",
+                      action="store_true")
+  return parser.parse_args()
+
+
+if __name__ == "__main__":
+  args = init()
+  # Each argument is parsed as a boolean which defaults to False when not given.
+  if args.unigram:
+    print "unigram feature activated"
+  if args.bigram:
+    print "bigram feature activated"
+  if args.liwc:
+    print "LIWC feature activated"
+
+  review, business, categories, sentiment = getData()
+
+  # Feature: Generate unigram and bigram features if activated.
+  # Also collect set of tokens in all reviews.
+  unique_tokens = generate_ngram_feats(args.unigram, args.bigram, review)
+
+
+  sorted(list(unique_tokens))
 
   # Merge business and review DataFrames.
   mergeBusRev = pd.merge(business, review, on = 'business_id')
