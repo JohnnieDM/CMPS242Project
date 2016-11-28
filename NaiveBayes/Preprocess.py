@@ -12,27 +12,30 @@ import numpy as np
 
 stops = set([str(w) for w in stopwords.words('english')])
 
-def get_frequencies(dict):
+def get_frequencies(df, tokens):
   """
   Place holder for the different frequencies we will use.
   """
-  r = {}
-  for key, ngrams in dict.items():
-    r[key] = [1 for ngram in ngrams]
-  return r
+  return pd.Series()
 
 def generate_ngram_feats(unigram_activated, bigram_activated, review):
   """
   Generate the n-gram features that are activated.
+  Add columns for unigram tokens and bigram tokens,
+  compute the frequencies (unigram) and conditional frequencies (bigram),
+  and add these as columns.
+  Returns lists of unique tokens for unigrams and bigrams.
   """
   if not (unigram_activated or bigram_activated):
     return
+
   texts = review['text'].to_dict()
   unigram_dict = {}
   bigram_dict = {}
   count = 0
   size = len(texts.items())
-  unique_tokens = set()
+  unique_uni = set()
+  unique_bi  = set()
   for key, text in texts.items():
     count+=1
     if count % 1000 == 1:
@@ -42,23 +45,37 @@ def generate_ngram_feats(unigram_activated, bigram_activated, review):
     bigrams = []
     for sent in nltk.sent_tokenize(text):
       tokens = []
-      for word in nltk.word_tokenize(sent):
+      for word in re.findall('[^_^\d\W]+', sent):
         word = word.lower()
         if word not in stops:
           unigrams.append(word)
           tokens.append(word)
-          unique_tokens.add(word)
-      bigrams.append(list(ngrams(tokens,2))) # list() to unpack the bigram generator object
+          unique_uni.add(word)
+      if bigram_activated:
+        bigrams = list(ngrams(tokens,2)) # list() to unpack the bigram generator object
+
     unigram_dict[key] = unigrams
     bigram_dict[key] = bigrams
+    [unique_uni.add(unigram) for unigram in unigrams]
+    [unique_bi.add(bigram) for bigram in bigrams]
 
+  # Add columns of n-gram tokens of each text.
   if unigram_activated:
-    review['unigrams'] = pd.Series(get_frequencies(unigram_dict))
+    review['uni_tokens'] = pd.Series(unigram_dict)
   if bigram_activated:
-    review['bigrams'] = pd.Series(get_frequencies(bigram_dict))
+    review['bi_tokens'] = pd.Series(bigram_dict)
+
+  # Add columns of frequencies.
+  # Turn sets of unique tokens into sorted lists for frequency computation.
+  if unigram_activated:
+    unique_uni = sorted(list(unique_uni))
+    review['uni_freq'] = get_frequencies(review, unique_uni)
+  if bigram_activated:
+    unique_bi = sorted(list(unique_bi))
+    review['bi_freq'] = get_frequencies(review, unique_bi)
   print review
 
-  return
+  return (unique_uni, unique_bi)
 
 
 def add_liwc_features(review):
