@@ -132,6 +132,12 @@ def pickMaxCat():
   business['categories'] = newCategories
 
 def generateTfIdf(data):
+  """
+  Args:
+      (dataFrame) data: whole data including review, business
+  Returns:
+      (dataFrame) data: whole data including review, business and tfIdf
+  """
   def calculateTF(row):
     TFDict = {}
     for word in row:
@@ -178,6 +184,7 @@ if __name__ == "__main__":
   if args.liwc:
     print "LIWC feature activated"
 
+
   review, business, categories, sentiment = getData()
 
   # Feature: Generate unigram and bigram features if activated.
@@ -190,7 +197,11 @@ if __name__ == "__main__":
   # Merge business and review DataFrames.
   mergeBusRev = pd.merge(business, review, on='business_id')
   featuresData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment': sentiment})], axis=1)
-
+  if not ( args.unigram or args.bigram ) and args.tfidf:
+    print "Tf-Idf cannot be generated without unigram or bigram "
+  elif args.tfidf:
+    print "Tf-Idf feature activated"
+    featuresData = generateTfIdf(featuresData)
   # Save the DataFrame with features to pickle.
   featuresData.to_pickle('jar_of_/features' + ''.join(sorted(sys.argv[1:])) + '.pkl')
 
