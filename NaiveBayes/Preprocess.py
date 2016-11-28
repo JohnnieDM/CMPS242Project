@@ -96,8 +96,7 @@ def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, 
     [unique_bi.add(bigram) for bigram in bigrams]
 
   # Add columns of n-gram tokens of each text.
-  if unigram_activated:
-    review['uni_tokens'] = pd.Series(unigram_dict)
+  review['uni_tokens'] = pd.Series(unigram_dict)
   if bigram_activated:
     review['bi_tokens'] = pd.Series(bigram_dict)
   review = review.reset_index(drop=True)
@@ -108,10 +107,8 @@ def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, 
   #print review
   wordsIndex = {k: i for i, k in enumerate(unique_uni | unique_bi)}
   revWordsIndex = {i: k for i, k in enumerate(unique_uni | unique_bi)}
-  pickle.dump(wordsIndex, open('jar_of_/wordsIndex'+''.join(sorted(sys.argv[1:]))+'.pickle', 'wb'))
-  pickle.dump(revWordsIndex, open('jar_of_/revWordsIndex'+''.join(sorted(sys.argv[1:]))+'.pickle', 'wb'))
 
-  return review
+  return review, wordsIndex, revWordsIndex
 
 
 def add_liwc_features(review):
@@ -145,12 +142,19 @@ def add_liwc_features(review):
 
 
 def getData():
-  if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_review.pkl")):
-    review = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_review.pkl"))
+  if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_train_review.pkl")):
+    train_review = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_train_review.pkl"))
   else:
-    review = pd.read_csv(os.path.join(os.getcwd(), "data", 'yelp_academic_dataset_review.csv'), encoding='utf-8')[['business_id', 'stars', 'text']].sample(
+    train_review = pd.read_csv(os.path.join(os.getcwd(), "data", 'yelp_academic_dataset_review.csv'), encoding='utf-8')[['business_id', 'stars', 'text']].sample(
       frac=0.01, replace=False)
-    review.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_review.pkl"))
+    train_review.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_train_review.pkl"))
+
+  if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_test_review.pkl")):
+    test_review = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_test_review.pkl"))
+  else:
+    test_review = pd.read_csv(os.path.join(os.getcwd(), "data", 'yelp_academic_dataset_review.csv'), encoding='utf-8')[['business_id', 'stars', 'text']].sample(
+      frac=0.01, replace=False)
+    test_review.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_test_review.pkl"))
 
   if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl")):
     business = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl"))
@@ -159,15 +163,23 @@ def getData():
     ['business_id', 'name', 'categories']]
     business.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl"))
   categories = business['categories']
-  star = review['stars']
+  train_star = train_review['stars']
 
-  sentiment = []
-  for s in star:
+  train_sentiment = []
+  for s in train_star:
     if s <= 2:
-      sentiment.append(0)
+      train_sentiment.append(0)
     else:
-      sentiment.append(1)
-  return review, business, categories, sentiment
+      train_sentiment.append(1)
+  test_star = test_review['stars']
+
+  test_sentiment = []
+  for s in test_star:
+    if s <= 2:
+      test_sentiment.append(0)
+    else:
+      test_sentiment.append(1)
+  return train_review, test_review, business, categories, train_sentiment, test_sentiment
 
 def pickMaxCat():
   # pick the most possible category
@@ -221,18 +233,26 @@ if __name__ == "__main__":
   if args.tfidf:
     print "Tf-Idf feature activated"
 
-  review, business, categories, sentiment = getData()
+  train_review, test_review, business, categories, train_sentiment, test_sentiment = getData()
 
   # Feature: Generate unigram and bigram features if activated.
   # Also collect set of tokens in all reviews.
-  review = generate_ngram_feats(args.unigram, args.bigram, args.tfidf, review)
-  if args.liwc:
-      add_liwc_features(review)
+  train_review, train_wordsIndex, train_revWordsIndex = generate_ngram_feats(args.unigram, args.bigram, args.tfidf, train_review)
+  pickle.dump(train_wordsIndex, open('jar_of_/train_wordsIndex'+''.join(sorted(sys.argv[1:]))+'.pkl', 'wb'))
+  pickle.dump(train_revWordsIndex, open('jar_of_/train_revWordsIndex' + ''.join(sorted(sys.argv[1:])) + '.pkl', 'wb'))
+  test_review, train_wordsIndex, train_revWordsIndex = generate_ngram_feats(args.unigram, args.bigram, args.tfidf, test_review)
+  #if args.liwc:
+      #add_liwc_features(train_review)
 
 
   # Merge business and review DataFrames.
-  mergeBusRev = pd.merge(business, review, on='business_id')
-  featuresData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment': sentiment})], axis=1)
+  mergeBusRev = pd.merge(business, train_review, on='business_id')
+  featuresData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment': train_sentiment})], axis=1)
   # Save the DataFrame with features to pickle.
-  featuresData.to_pickle('jar_of_/features' + ''.join(sorted(sys.argv[1:])) + '.pkl')
+  featuresData.to_pickle('jar_of_/train_features' + ''.join(sorted(sys.argv[1:])) + '.pkl')
+
+  mergeBusRev = pd.merge(business, test_review, on='business_id')
+  featuresData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment': test_sentiment})], axis=1)
+  # Save the DataFrame with features to pickle.
+  featuresData.to_pickle('jar_of_/test_features' + ''.join(sorted(sys.argv[1:])) + '.pkl')
 
