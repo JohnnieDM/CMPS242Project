@@ -182,7 +182,6 @@ if __name__ == "__main__":
 
   # Feature: Generate unigram and bigram features if activated.
   # Also collect set of tokens in all reviews.
-  args.unigram = True
   unique_tokens = generate_ngram_feats(args.unigram, args.bigram, review)
 
   if unique_tokens:
