@@ -88,7 +88,7 @@ def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, 
           tokens.append(word)
           unique_uni.add(word)
       if bigram_activated:
-        bigrams = list(ngrams(tokens,2)) # list() to unpack the bigram generator object
+        bigrams.extend(list(ngrams(tokens,2))) # list() to unpack the bigram generator object
 
     unigram_dict[key] = unigrams
     bigram_dict[key] = bigrams
@@ -141,7 +141,8 @@ def add_liwc_features(review):
   for key, text in texts.items():
       liwc_scores = word_category_counter.score_text(text)
       liwc_dict[key] = liwc_scores
-  review['liwc'] = pd.Series(get_frequencies(liwc_dict))
+  review['liwc'] = pd.Series(liwc_dict)
+  #print review
 
 
 def getData():
