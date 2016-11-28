@@ -1,0 +1,4 @@
+./reports/*
+.NaiveBayes/jar_of_/*
+*.csv
+*.json
