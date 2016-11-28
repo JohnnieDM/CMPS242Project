@@ -61,7 +61,7 @@ def generate_ngram_feats(unigram_activated, bigram_activated, review):
   return
 
 
-def add_liwc_features(text, feature_vector):
+def add_liwc_features(review):
   """
   Args:
       (string)text: some text input
@@ -71,19 +71,25 @@ def add_liwc_features(text, feature_vector):
       Modified feature vector
 
   """
-  liwc_scores = word_category_counter.score_text(text)
   # All possible keys to the scores start on line 269
   # of the word_category_counter.py script
-  for key in liwc_scores.keys():
-      feature_vector["liwc:"+key] = liwc_scores[key]
+  # for key in liwc_scores.keys():
+  #     feature_vector["liwc:"+key] = liwc_scores[key]
+  #
+  # negative_score = liwc_scores["Negative Emotion"]
+  # positive_score = liwc_scores["Positive Emotion"]
+  #
+  # if positive_score > negative_score:
+  #     feature_vector["liwc:positive"] = 1
+  # else:
+  #     feature_vector["liwc:negative"] = 1
+  texts = review['text'].to_dict()
+  liwc_dict = {}
+  for key, text in texts.items():
+      liwc_scores = word_category_counter.score_text(text)
+      liwc_dict[key] = liwc_scores
+  review['liwc'] = pd.Series(get_frequencies(liwc_dict))
 
-  negative_score = liwc_scores["Negative Emotion"]
-  positive_score = liwc_scores["Positive Emotion"]
-
-  if positive_score > negative_score:
-      feature_vector["liwc:positive"] = 1
-  else:
-      feature_vector["liwc:negative"] = 1
 
 def getData():
   if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_review.pkl")):
@@ -190,7 +196,8 @@ if __name__ == "__main__":
   # Feature: Generate unigram and bigram features if activated.
   # Also collect set of tokens in all reviews.
   unique_tokens = generate_ngram_feats(args.unigram, args.bigram, review)
-
+  if args.liwc:
+      add_liwc_features(review)
   if unique_tokens:
     sorted(list(unique_tokens))
 
