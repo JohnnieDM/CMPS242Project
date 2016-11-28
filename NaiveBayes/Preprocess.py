@@ -11,7 +11,7 @@ import pickle
 
 stops = set([str(w) for w in stopwords.words('english')])
 
-def get_frequencies(review, bigram_activated, tf_idf_activated):
+def get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activated):
   """
   Args:
       (dataFrame) df: review dataframe including tokens of each file
@@ -31,7 +31,10 @@ def get_frequencies(review, bigram_activated, tf_idf_activated):
         for words in bi_tokens:
             tempDict[words] = tempDict.get(word, 0) + 1
         tempDict = {k: float(v) / (len(bi_tokens)*TFDict[k[0]]) for k, v in tempDict.iteritems()}
-        TFDict.update(tempDict)
+        if unigram_activated:
+          TFDict.update(tempDict)
+        else:
+          TFDict = tempDict
     return TFDict
   IDFDict = {}
   def calculateIDF(row):
@@ -101,12 +104,12 @@ def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, 
 
   # Add columns of frequencies.
   # Turn sets of unique tokens into sorted lists for frequency computation.
-  review = get_frequencies(review, bigram_activated, tf_idf_activated)
+  review = get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activated)
   #print review
   wordsIndex = {k: i for i, k in enumerate(unique_uni | unique_bi)}
   revWordsIndex = {i: k for i, k in enumerate(unique_uni | unique_bi)}
-  pickle.dump(wordsIndex, open('wordsIndex'+''.join(sorted(sys.argv[1:]))+'.pickle', 'wb'))
-  pickle.dump(revWordsIndex, open('revWordsIndex'+''.join(sorted(sys.argv[1:]))+'.pickle', 'wb'))
+  pickle.dump(wordsIndex, open('jar_of_/wordsIndex'+''.join(sorted(sys.argv[1:]))+'.pickle', 'wb'))
+  pickle.dump(revWordsIndex, open('jar_of_/revWordsIndex'+''.join(sorted(sys.argv[1:]))+'.pickle', 'wb'))
 
   return review
 
