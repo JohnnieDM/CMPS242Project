@@ -3,22 +3,55 @@ import re
 import nltk
 from nltk.corpus import stopwords
 from nltk.util import ngrams
-import time
-import sys  
+import sys
 import argparse
 import word_category_counter
 import os
-import numpy as np
+import pickle
 
 stops = set([str(w) for w in stopwords.words('english')])
 
-def get_frequencies(df, tokens):
+def get_frequencies(review, bigram_activated, tf_idf_activated):
   """
-  Place holder for the different frequencies we will use.
+  Args:
+      (dataFrame) df: review dataframe including tokens of each file
+      (list) tokens for whole files
+  Returns:
+      (dataFrame) dataframe for frequency
   """
-  return pd.Series()
+  def calculateTF(row):
+    uni_tokens = row['uni_tokens']
+    TFDict = {}
+    for word in uni_tokens:
+      TFDict[word] = TFDict.get(word, 0) + 1
+    TFDict = {k: float(v) / len(uni_tokens) for k, v in TFDict.iteritems()}
+    if bigram_activated:
+        bi_tokens = row['bi_tokens']
+        tempDict = {}
+        for words in bi_tokens:
+            tempDict[words] = tempDict.get(word, 0) + 1
+        tempDict = {k: float(v) / (len(bi_tokens)*TFDict[k[0]]) for k, v in tempDict.iteritems()}
+        TFDict.update(tempDict)
+    return TFDict
+  IDFDict = {}
+  def calculateIDF(row):
+    unique_words = set(row['frequency'])
+    for word in unique_words:
+      IDFDict[word] = IDFDict.get(word, 0) + 1
+  def calculateTF_IDF(row):
+    return {k: v * IDFDict[k] for k, v in row.items()}
 
-def generate_ngram_feats(unigram_activated, bigram_activated, review):
+  N = review.shape[0]
+  review['frequency'] = review.apply(calculateTF, axis=1)
+
+  if tf_idf_activated:
+    review.apply(calculateIDF, axis=1)
+    IDFDict = {k: float(N) / v for k, v in IDFDict.items()}
+    TF_IDFDict = review['frequency'].apply(calculateTF_IDF).rename('TF_IDF')
+    review['TF_IDF'] = TF_IDFDict
+  return review
+
+def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, review):
   """
   Generate the n-gram features that are activated.
   Add columns for unigram tokens and bigram tokens,
@@ -64,18 +97,18 @@ def generate_ngram_feats(unigram_activated, bigram_activated, review):
     review['uni_tokens'] = pd.Series(unigram_dict)
   if bigram_activated:
     review['bi_tokens'] = pd.Series(bigram_dict)
+  review = review.reset_index(drop=True)
 
   # Add columns of frequencies.
   # Turn sets of unique tokens into sorted lists for frequency computation.
-  if unigram_activated:
-    unique_uni = sorted(list(unique_uni))
-    review['uni_freq'] = get_frequencies(review, unique_uni)
-  if bigram_activated:
-    unique_bi = sorted(list(unique_bi))
-    review['bi_freq'] = get_frequencies(review, unique_bi)
-  print review
+  review = get_frequencies(review, bigram_activated, tf_idf_activated)
+  #print review
+  wordsIndex = {k: i for i, k in enumerate(unique_uni | unique_bi)}
+  revWordsIndex = {i: k for i, k in enumerate(unique_uni | unique_bi)}
+  pickle.dump(wordsIndex, open('wordsIndex'+''.join(sorted(sys.argv[1:]))+'.pickle', 'wb'))
+  pickle.dump(revWordsIndex, open('revWordsIndex'+''.join(sorted(sys.argv[1:]))+'.pickle', 'wb'))
 
-  return (unique_uni, unique_bi)
+  return review
 
 
 def add_liwc_features(review):
@@ -154,33 +187,7 @@ def pickMaxCat():
     newCategories.append(finalCate)
   business['categories'] = newCategories
 
-def generateTfIdf(data):
-  """
-  Args:
-      (dataFrame) data: whole data including review, business
-  Returns:
-      (dataFrame) data: whole data including review, business and tfIdf
-  """
-  def calculateTF(row):
-    TFDict = {}
-    for word in row:
-      TFDict[word] = TFDict.get(word, 0) + 1
-    TFDict = {k: float(v) / len(row) for k, v in TFDict.iteritems()}
-    return TFDict
-  IDFDict = {}
-  def calculateIDF(row):
-    row = set(row)
-    for word in row:
-      IDFDict[word] = IDFDict.get(word, 0) + 1
-  def calculateTF_IDF(row):
-    return {k: v * IDFDict[k] for k, v in row.items()}
 
-  N = data.shape[0]
-  TFDict = data['text'].apply(calculateTF)
-  data['text'].apply(calculateIDF)
-  IDFDict = {k: np.log(float(N) / v) for k, v in IDFDict.items()}
-  TF_IDFDict = TFDict.apply(calculateTF_IDF).rename('TF_IDF')
-  return pd.concat([data, TF_IDFDict], axis=1)
 
 def init():
   parser = argparse.ArgumentParser(description="Specify feature types")
@@ -200,32 +207,29 @@ def init():
 if __name__ == "__main__":
   args = init()
   # Each argument is parsed as a boolean which defaults to False when not given.
+  if args.all:
+      args.unigram, args.bigram, args.liwc, args.tfidf = True, True, True, True
   if args.unigram:
     print "unigram feature activated"
   if args.bigram:
     print "bigram feature activated"
   if args.liwc:
     print "LIWC feature activated"
-
+  if args.tfidf:
+    print "Tf-Idf feature activated"
 
   review, business, categories, sentiment = getData()
 
   # Feature: Generate unigram and bigram features if activated.
   # Also collect set of tokens in all reviews.
-  unique_tokens = generate_ngram_feats(args.unigram, args.bigram, review)
+  review = generate_ngram_feats(args.unigram, args.bigram, args.tfidf, review)
   if args.liwc:
       add_liwc_features(review)
-  if unique_tokens:
-    sorted(list(unique_tokens))
+
 
   # Merge business and review DataFrames.
   mergeBusRev = pd.merge(business, review, on='business_id')
   featuresData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment': sentiment})], axis=1)
-  if not ( args.unigram or args.bigram ) and args.tfidf:
-    print "Tf-Idf cannot be generated without unigram or bigram "
-  elif args.tfidf:
-    print "Tf-Idf feature activated"
-    featuresData = generateTfIdf(featuresData)
   # Save the DataFrame with features to pickle.
   featuresData.to_pickle('jar_of_/features' + ''.join(sorted(sys.argv[1:])) + '.pkl')
 
