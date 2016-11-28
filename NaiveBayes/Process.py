@@ -93,8 +93,8 @@ def init():
 if( __name__ == '__main__'):
 	#load feature vectors
 	args = init()
-	data = pd.read_csv('NaiveBayesData.csv')
-	testData = pd.read_csv('NaiveBayesData2.csv')
+	data = pd.read_pickle('NaiveBayesData.pickle')
+	testData = pd.read_pickle('NaiveBayesData2.pickle')
 	if args.naive_bayes:
 		nbTestData = naiveBayes(data, testData)
 

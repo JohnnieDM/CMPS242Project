@@ -155,7 +155,7 @@ def generateTfIdf(data):
   N = data.shape[0]
   TFDict = data['text'].apply(calculateTF)
   data['text'].apply(calculateIDF)
-  IDFDict = {k: np.log(float(N)) / v for k, v in IDFDict.items()}
+  IDFDict = {k: np.log(float(N) / v) for k, v in IDFDict.items()}
   TF_IDFDict = TFDict.apply(calculateTF_IDF).rename('TF_IDF')
   return pd.concat([data, TF_IDFDict], axis=1)
 
