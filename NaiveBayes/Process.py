@@ -83,7 +83,6 @@ if( __name__ == '__main__'):
 	TestData = pd.read_csv('NaiveBayesData2.csv')
 
 	A = math.log(Prior[1],10)-math.log(Prior[0],10)
-
 	TruePositive = 0
 	FalsePositive = 0
 	TrueNegative = 0

@@ -8,6 +8,7 @@ import sys
 import argparse
 import word_category_counter
 import os
+import numpy as np
 
 stops = set([str(w) for w in stopwords.words('english')])
 
@@ -24,9 +25,8 @@ def generate_ngram_feats(unigram_activated, bigram_activated, review):
   """
   Generate the n-gram features that are activated.
   """
-  if not (unigram_activated and bigram_activated):
+  if not (unigram_activated or bigram_activated):
     return
-
   texts = review['text'].to_dict()
   unigram_dict = {}
   bigram_dict = {}
@@ -56,8 +56,9 @@ def generate_ngram_feats(unigram_activated, bigram_activated, review):
     review['unigrams'] = pd.Series(get_frequencies(unigram_dict))
   if bigram_activated:
     review['bigrams'] = pd.Series(get_frequencies(bigram_dict))
+  print review
 
-  return all_tokens
+  return
 
 
 def add_liwc_features(text, feature_vector):
@@ -88,14 +89,14 @@ def getData():
   if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_review.pkl")):
     review = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_review.pkl"))
   else:
-    review = pd.read_csv('yelp_academic_dataset_review.csv', encoding='utf-8')[['business_id', 'stars', 'text']].sample(
+    review = pd.read_csv(os.path.join(os.getcwd(), "data", 'yelp_academic_dataset_review.csv'), encoding='utf-8')[['business_id', 'stars', 'text']].sample(
       frac=0.01, replace=False)
     review.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_review.pkl"))
 
   if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl")):
     business = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl"))
   else:
-    business = pd.read_csv('yelp_academic_dataset_business.csv', low_memory=False, encoding='utf-8')[
+    business = pd.read_csv(os.path.join(os.getcwd(), "data", 'yelp_academic_dataset_business.csv'), low_memory=False, encoding='utf-8')[
     ['business_id', 'name', 'categories']]
     business.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl"))
   categories = business['categories']
@@ -110,6 +111,7 @@ def getData():
   return review, business, categories, sentiment
 
 def pickMaxCat():
+  # pick the most possible category
   countCate = {}
   for c in categories:
     cateList = c.split(",")
@@ -128,6 +130,28 @@ def pickMaxCat():
         maxCate = countCate[element]
     newCategories.append(finalCate)
   business['categories'] = newCategories
+
+def generateTfIdf(data):
+  def calculateTF(row):
+    TFDict = {}
+    for word in row:
+      TFDict[word] = TFDict.get(word, 0) + 1
+    TFDict = {k: float(v) / len(row) for k, v in TFDict.iteritems()}
+    return TFDict
+  IDFDict = {}
+  def calculateIDF(row):
+    row = set(row)
+    for word in row:
+      IDFDict[word] = IDFDict.get(word, 0) + 1
+  def calculateTF_IDF(row):
+    return {k: v * IDFDict[k] for k, v in row.items()}
+
+  N = data.shape[0]
+  TFDict = data['text'].apply(calculateTF)
+  data['text'].apply(calculateIDF)
+  IDFDict = {k: np.log(float(N)) / v for k, v in IDFDict.items()}
+  TF_IDFDict = TFDict.apply(calculateTF_IDF).rename('TF_IDF')
+  return pd.concat([data, TF_IDFDict], axis=1)
 
 def init():
   parser = argparse.ArgumentParser(description="Specify feature types")
@@ -158,15 +182,16 @@ if __name__ == "__main__":
 
   # Feature: Generate unigram and bigram features if activated.
   # Also collect set of tokens in all reviews.
+  args.unigram = True
   unique_tokens = generate_ngram_feats(args.unigram, args.bigram, review)
 
-
-  sorted(list(unique_tokens))
+  if unique_tokens:
+    sorted(list(unique_tokens))
 
   # Merge business and review DataFrames.
-  mergeBusRev = pd.merge(business, review, on = 'business_id')
-  NaiveBayesData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment':sentiment})],axis = 1)
+  mergeBusRev = pd.merge(business, review, on='business_id')
+  featuresData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment': sentiment})], axis=1)
 
   # Save the DataFrame with features to pickle.
-  NaiveBayesData.to_pickle('features' +''.join(sorted(sys.argv[1:]))+ '.pickle')
+  featuresData.to_pickle('jar_of_/features' + ''.join(sorted(sys.argv[1:])) + '.pkl')
 
