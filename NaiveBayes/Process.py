@@ -13,26 +13,46 @@ from scipy.sparse import csr_matrix
 import sys
 
 def naive_bayes(data, testData):
-    def countWords(row):
+    def count_uni_words(row):
         Class = row[1]
         for word in row[0]:
-            bow[Class][word] = bow[Class].get(word, 0) + 1.0
-            n_words_[Class] += 1
+            uni_bow[Class][word] = uni_bow[Class].get(word, 0) + 1.0
+            uni_n_words_[Class] += 1
+    def count_bi_words(row):
+        Class = row[1]
+        for word in row[0]:
+            bi_bow[Class][word] = bi_bow[Class].get(word, 0) + 1.0
+            bi_n_words_[Class] += 1
 
-    def applyNaiveBayes(row):
+    def apply_naive_bayes(row):
         sumOfClass1 = 0
         sumOfClass2 = 0
-        # algorithm
-        for word in row[0]:
-            if word in bow[1]:
-                sumOfClass1 += math.log(bow[1][word], 10)
-            else:
-                sumOfClass1 += math.log(1.0 / (n_words_[1] + uniqueWords), 10)
+        if 'uni_tokens' in row:
+            uni_tokens = row['uni_tokens']
+            # algorithm
+            for word in uni_tokens:
+                if word in bow[1]:
+                    sumOfClass1 += math.log(bow[1][word], 10)
+                else:
+                    sumOfClass1 += math.log(1.0 / (uni_n_words_[1] + uni_unique_words), 10)
 
-            if word in bow[0]:
-                sumOfClass2 += math.log(bow[0][word], 10)
-            else:
-                sumOfClass2 += math.log(1.0 / (n_words_[0] + uniqueWords), 10)
+                if word in uni_bow[0]:
+                    sumOfClass2 += math.log(bow[0][word], 10)
+                else:
+                    sumOfClass2 += math.log(1.0 / (uni_n_words_[0] + uni_unique_words), 10)
+        if 'bi_tokens' in row:
+            bi_tokens = row['bi_tokens']
+            # algorithm
+            for word in bi_tokens:
+                if word in bow[1]:
+                    sumOfClass1 += math.log(bow[1][word], 10)
+                else:
+                    sumOfClass1 += math.log(1.0 / (bi_n_words_[1] + bi_unique_words), 10)
+
+                if word in uni_bow[0]:
+                    sumOfClass2 += math.log(bow[0][word], 10)
+                else:
+                    sumOfClass2 += math.log(1.0 / (bi_n_words_[0] + bi_unique_words), 10)
         # print A,B,C
         # classification
         if priorPortion + sumOfClass1 - sumOfClass2 > 0:
@@ -40,71 +60,72 @@ def naive_bayes(data, testData):
         else:
             t = 0
         return t
-    nbData = data[['uni_tokens', 'sentiment']]
-    nbData_1 = nbData[nbData.sentiment == 1]
-    nbData_0 = nbData[nbData.sentiment == 0]
 
-    bow = [{}, {}]
     # number of docs
-    n = nbData.count()[0]
+    n = data.count()[0]
+    data_1 = data[data.sentiment == 1]
+    data_0 = data[data.sentiment == 0]
     # number of docs in each class
-    n_ = [nbData_0.count()[0], nbData_1.count()[0]]
-
+    n_ = [data_0.count()[0], data_1.count()[0]]
     # prior
     prior = [n_[0] / float(n), n_[1] / float(n)]
-    ##total words for each class
-    n_words_ = [0, 0]
 
-    nbData.apply(countWords, axis=1)
+    bow = [{},{}]
+    if 'uni_tokens' in data.columns:
+        nb_data = data[['uni_tokens', 'sentiment']]
 
-    # unique words for all classes
-    uniqueWords = len(set(bow[0].keys() + bow[1].keys()))
-    # laplace smoothing
-    for i in range(len(bow)):
-        for word in bow[i]:
-            bow[i][word] = (float(bow[i][word]) + 1) / (n_words_[i] + uniqueWords)
+
+        uni_bow = [{}, {}]
+
+        ##total words for each class
+        uni_n_words_ = [0, 0]
+
+        nb_data.apply(count_uni_words, axis=1)
+
+        # unique words for all classes
+        uni_unique_words = len(set(uni_bow[0].keys() + uni_bow[1].keys()))
+        # laplace smoothing
+        for i in range(len(uni_bow)):
+            for word in uni_bow[i]:
+                uni_bow[i][word] = (float(uni_bow[i][word]) + 1) / (uni_n_words_[i] + uni_unique_words)
+        bow[0].update(uni_bow[0])
+        bow[1].update(uni_bow[1])
+    if 'bi_tokens' in data.columns:
+        print "hi"
+        nb_data = data[['bi_tokens', 'sentiment']]
+
+        bi_bow = [{}, {}]
+        # number of docs
+
+        ##total words for each class
+        bi_n_words_ = [0, 0]
+
+        nb_data.apply(count_bi_words, axis=1)
+
+        # unique words for all classes
+        bi_unique_words = len(set(bi_bow[0].keys() + bi_bow[1].keys()))
+        # laplace smoothing
+        for i in range(len(bi_bow)):
+            for word in bi_bow[i]:
+                bi_bow[i][word] = (float(bi_bow[i][word]) + 1) / (bi_n_words_[i] + bi_unique_words)
+        bow[0].update(bi_bow[0])
+        bow[1].update(bi_bow[1])
 
     # generate test data
 
     priorPortion = math.log(prior[1], 10) - math.log(prior[0], 10)
     # A -> prior , B -> sum of the class 1, C -> sum of the class 0
     # run test
-    nbTestData = testData[['uni_tokens', 'sentiment']]
-    predictLabel = nbTestData.apply(applyNaiveBayes, axis=1)
-    disc_feats_NB(bow)
+
+    predictLabel = testData.apply(apply_naive_bayes, axis=1)
 
     # print accuracy
-    print "Unigrm NaiveBayes Result:"
-    print "True Positive:  ", predictLabel[predictLabel == 1][predictLabel == nbTestData['sentiment']].count()
-    print "False Positive: ", predictLabel[predictLabel == 1][predictLabel != nbTestData['sentiment']].count()
-    print "True Negative:  ", predictLabel[predictLabel == 0][predictLabel == nbTestData['sentiment']].count()
-    print "False Negative: ", predictLabel[predictLabel == 0][predictLabel != nbTestData['sentiment']].count()
+    print "NaiveBayes Result:"
+    print "True Positive:  ", predictLabel[predictLabel == 1][predictLabel == testData['sentiment']].count()
+    print "False Positive: ", predictLabel[predictLabel == 1][predictLabel != testData['sentiment']].count()
+    print "True Negative:  ", predictLabel[predictLabel == 0][predictLabel == testData['sentiment']].count()
+    print "False Negative: ", predictLabel[predictLabel == 0][predictLabel != testData['sentiment']].count()
     return predictLabel
-
-def disc_feats_NB(training):
-    ham = [(k, training[0][k]) for k in sorted(training[0], key=training[0].get, reverse=True)]
-    spam = [(k, training[1][k]) for k in sorted(training[1], key=training[1].get, reverse=True)]
-
-    ham = dict(ham[:100])
-    spam = dict(spam[:100])
-
-    rm_key = []
-
-    for k in ham.keys():
-        if k in spam.keys():
-            rm_key.append(k)
-
-    for rm in rm_key:
-        del ham[rm]
-        del spam[rm]
-
-    ham = [(k, ham[k]) for k in sorted(ham, key=ham.get, reverse=True)]
-    spam = [(k, spam[k]) for k in sorted(spam, key=spam.get, reverse=True)]
-
-    print("Top positive features:")
-    print(spam)
-    print("Top negative features:")
-    print(ham)
 
 
 def logistic_regression(data, testData, wordsIndex, args_tf_idf):
@@ -169,7 +190,7 @@ def init():
                       action="store_true")
     parser.add_argument("-t", "--tfidf", help="use tfidf frequency count",
                       action="store_true")
-    parser.add_argument("-un", "--uni_naive_bayes", help="use naive bayes classifier",
+    parser.add_argument("-nb", "--naive_bayes", help="use naive bayes classifier",
                       action="store_true")
     parser.add_argument("-lr", "--logistic_regression", help="use naive bayes classifier",
                       action="store_true")
@@ -177,13 +198,13 @@ def init():
 if( __name__ == '__main__'):
     #load feature vectors
     args = init()
-    sys.argv
     data = pd.read_pickle('jar_of_/train_features-a.pkl')
     testData = pd.read_pickle('jar_of_/test_features-a.pkl')
     wordsIndex = pickle.load(open('jar_of_/train_wordsIndex-a.pkl'))
-    if args.uni_naive_bayes:
-        nbTestData = naive_bayes(data, testData, wordsIndex)
+    if args.naive_bayes:
+        nbTestData = naive_bayes(data, testData)
     if args.logistic_regression:
         lrTestData = logistic_regression(data, testData, wordsIndex, args.tfidf)
+
 
 

@@ -50,8 +50,8 @@ def get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activate
   if tf_idf_activated:
     review.apply(calculateIDF, axis=1)
     IDFDict = {k: float(N) / v for k, v in IDFDict.items()}
-    TF_IDFDict = review['frequency'].apply(calculateTF_IDF).rename('TF_IDF')
-    review['TF_IDF'] = TF_IDFDict
+    TF_IDFDict = review['frequency'].apply(calculateTF_IDF)
+    review['frequency'] = TF_IDFDict
   return review
 
 def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, review):
@@ -147,7 +147,7 @@ def add_liwc_features(review):
           liwc_dict[key] = {"liwc:negative":1}
 
   review['liwc'] = pd.Series(liwc_dict)
-  print review
+  #print review
 
 
 def getData():
@@ -255,6 +255,7 @@ if __name__ == "__main__":
       add_liwc_features(train_review)
 
 
+
   # Merge business and review DataFrames.
   mergeBusRev = pd.merge(business, train_review, on='business_id')
   featuresData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment': train_sentiment})], axis=1)
@@ -265,4 +266,3 @@ if __name__ == "__main__":
   featuresData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment': test_sentiment})], axis=1)
   # Save the DataFrame with features to pickle.
   featuresData.to_pickle('jar_of_/test_features' + ''.join(sorted(sys.argv[1:])) + '.pkl')
-
