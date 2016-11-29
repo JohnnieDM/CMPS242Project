@@ -137,7 +137,15 @@ def add_liwc_features(review):
   liwc_dict = {}
   for key, text in texts.items():
       liwc_scores = word_category_counter.score_text(text)
-      liwc_dict[key] = liwc_scores
+      # liwc_dict[key] = liwc_scores
+      negative_score = liwc_scores["Negative Emotion"]
+      positive_score = liwc_scores["Positive Emotion"]
+
+      if positive_score > negative_score:
+          liwc_dict[key] = {"liwc:positive":1}
+      else:
+          liwc_dict[key] = {"liwc:negative":1}
+
   review['liwc'] = pd.Series(liwc_dict)
   #print review
 
@@ -242,13 +250,16 @@ if __name__ == "__main__":
   pickle.dump(train_wordsIndex, open('jar_of_/train_wordsIndex'+''.join(sorted(sys.argv[1:]))+'.pkl', 'wb'))
   pickle.dump(train_revWordsIndex, open('jar_of_/train_revWordsIndex' + ''.join(sorted(sys.argv[1:])) + '.pkl', 'wb'))
   test_review, train_wordsIndex, train_revWordsIndex = generate_ngram_feats(args.unigram, args.bigram, args.tfidf, test_review)
-  #if args.liwc:
-      #add_liwc_features(train_review)
+  if args.liwc:
+      add_liwc_features(train_review)
 
 
   # Merge business and review DataFrames.
   mergeBusRev = pd.merge(business, train_review, on='business_id')
   featuresData = pd.concat([mergeBusRev, pd.DataFrame({'sentiment': train_sentiment})], axis=1)
+  # featuresData['sentiment']
+  # pos = {"good":2}
+  # neg = {"bad":100,.....}
   # Save the DataFrame with features to pickle.
   featuresData.to_pickle('jar_of_/train_features' + ''.join(sorted(sys.argv[1:])) + '.pkl')
 
