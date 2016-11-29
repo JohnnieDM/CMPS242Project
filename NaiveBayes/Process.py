@@ -230,13 +230,8 @@ def disc_feats_NB(training):
 def init():
     parser = argparse.ArgumentParser(description="Specify feature types")
     # Options to select the classifier:
-    parser.add_argument("-c", "--classifier", required=True)
-    #parser.add_argument("-nb", "--naive_bayes", help="use Naive Bayes classifier",
-    #                  action="store_true")
-    #parser.add_argument("-lr", "--logistic_regression", help="use Logistic Regression classifier",
-    #                  action="store_true")
-    #parser.add_argument("-svm", "--SVM", help="use Support Vector classifier",
-    #                  action="store_true")
+    parser.add_argument("-c", "--classifier", help="the type of classifier to train (nb for Naive Bayes,
+                        lr for Logistic Regression, and svm for Support Vector Machine)", required=True)
     parser.add_argument("-t", "--train", help="the name of the pickled feature file", required=True)
     parser.add_argument("-s", "--test", help="the name of the pickled feature file", required=True)
     parser.add_argument("-w", "--word_index", help="the index of words", required=True)
@@ -252,11 +247,10 @@ if( __name__ == '__main__'):
     rev_words_index = pickle.load(open(args.rev_word_index))
 
     if args.classifier == "nb":
-    #if args.naive_bayes:
         nbTestData = naive_bayes(train_data, test_data)
     if args.classifier == "lr":
-    #if args.logistic_regression:
         lrTestData = logistic_regression(train_data, test_data, words_index, rev_words_index)
-
+    if args.classifier == "svm":
+        pass
 
 
