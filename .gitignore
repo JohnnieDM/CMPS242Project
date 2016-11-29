@@ -1,3 +1,4 @@
 reports/*
+*.csv
 NaiveBayes/jar_of_/*
 *.json
