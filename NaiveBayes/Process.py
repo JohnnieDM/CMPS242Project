@@ -10,6 +10,7 @@ import argparse
 from sklearn import linear_model
 import pickle
 from scipy.sparse import csr_matrix
+import sys
 
 def naive_bayes(data, testData):
 	def countWords(row):
@@ -150,6 +151,7 @@ def init():
 if( __name__ == '__main__'):
 	#load feature vectors
 	args = init()
+	sys.argv
 	data = pd.read_pickle('jar_of_/train_features-a.pkl')
 	testData = pd.read_pickle('jar_of_/test_features-a.pkl')
 	wordsIndex = pickle.load(open('jar_of_/train_wordsIndex-a.pkl'))
