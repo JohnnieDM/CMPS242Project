@@ -131,14 +131,6 @@ def naive_bayes(data, testData):
     #print "False Positive: ", predictLabel[predictLabel == 1][predictLabel != testData['sentiment']].count()
     #print "True Negative:  ", predictLabel[predictLabel == 0][predictLabel == testData['sentiment']].count()
     #print "False Negative: ", predictLabel[predictLabel == 0][predictLabel != testData['sentiment']].count()
-    disc_feats_NB(bow)
-
-    # print accuracy
-    print "NaiveBayes Result:"
-    print "True Positive:  ", predictLabel[predictLabel == 1][predictLabel == testData['sentiment']].count()
-    print "False Positive: ", predictLabel[predictLabel == 1][predictLabel != testData['sentiment']].count()
-    print "True Negative:  ", predictLabel[predictLabel == 0][predictLabel == testData['sentiment']].count()
-    print "False Negative: ", predictLabel[predictLabel == 0][predictLabel != testData['sentiment']].count()
     return predictLabel
 
 
@@ -165,10 +157,8 @@ def logistic_regression(data, testData, wordsIndex, args_tf_idf):
     row = []
     col = []
     value = []
-    if args_tf_idf:
-        frequency = data['TF_IDF']
-    else:
-        frequency = data['frequency']
+
+    frequency = data['frequency']
     i = 0
     for element in frequency:
         for k, v in element.items():
@@ -183,10 +173,7 @@ def logistic_regression(data, testData, wordsIndex, args_tf_idf):
     row = []
     col = []
     value = []
-    if args_tf_idf:
-        frequency = testData['TF_IDF']
-    else:
-        frequency = testData['frequency']
+    frequency = testData['frequency']
     i = 0
     for element in frequency:
         for k, v in element.items():
@@ -202,6 +189,14 @@ def logistic_regression(data, testData, wordsIndex, args_tf_idf):
     logreg = linear_model.LogisticRegression(dual=True, C=1e-9)
     logreg.fit(X, Y)
 
+    coef = logreg.coef_[0]
+    coef = coef.tolist()
+    coef = [(i,coef[i]) for i in range(len(coef))]
+    coef = sorted(coef, key=lambda x: x[1], reverse=True)
+    print "The 10 most discriminative words"
+    print revWordsIndex[coef[0][0]], revWordsIndex[coef[1][0]], revWordsIndex[coef[2][0]], revWordsIndex[coef[3][0]],\
+        revWordsIndex[coef[4][0]], revWordsIndex[coef[5][0]], revWordsIndex[coef[6][0]], revWordsIndex[coef[7][0]],\
+        revWordsIndex[coef[8][0]], revWordsIndex[coef[9][0]]
     predictLabel = logreg.predict(testX)
     print "Logistic Regression Result:"
     true = predictLabel[predictLabel == testY]
@@ -257,12 +252,13 @@ if( __name__ == '__main__'):
     args = init()
     train_data = pd.read_pickle(args.train)
     test_data = pd.read_pickle(args.test)
-    wordsIndex = pickle.load(open(args.words_index))
+    words_index = pickle.load(open(args.words_index))
+    rev_words_index = pickle.load(open(args.rev_words_index))
 
     if args.naive_bayes:
-        nbTestData = naive_bayes(data, testData)
+        nbTestData = naive_bayes(data, test_data)
     if args.logistic_regression:
-        lrTestData = logistic_regression(data, testData, wordsIndex, args.tfidf)
+        lrTestData = logistic_regression(data, test_data, words_index, rev_words_index)
 
 
 
