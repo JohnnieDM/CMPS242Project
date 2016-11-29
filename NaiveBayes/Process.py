@@ -12,7 +12,7 @@ import pickle
 from scipy.sparse import csr_matrix
 import sys
 
-def naive_bayes(data, testData):
+def naive_bayes(data, testData, args):
     def countWords(row):
         Class = row[1]
         for word in row[0]:
@@ -40,6 +40,7 @@ def naive_bayes(data, testData):
         else:
             t = 0
         return t
+
     nbData = data[['uni_tokens', 'sentiment']]
     nbData_1 = nbData[nbData.sentiment == 1]
     nbData_0 = nbData[nbData.sentiment == 0]
@@ -73,13 +74,33 @@ def naive_bayes(data, testData):
     predictLabel = nbTestData.apply(applyNaiveBayes, axis=1)
     disc_feats_NB(bow)
 
-    # print accuracy
-    print "Unigrm NaiveBayes Result:"
-    print "True Positive:  ", predictLabel[predictLabel == 1][predictLabel == nbTestData['sentiment']].count()
-    print "False Positive: ", predictLabel[predictLabel == 1][predictLabel != nbTestData['sentiment']].count()
-    print "True Negative:  ", predictLabel[predictLabel == 0][predictLabel == nbTestData['sentiment']].count()
-    print "False Negative: ", predictLabel[predictLabel == 0][predictLabel != nbTestData['sentiment']].count()
+    # Print accuracies
+    print_result(predictLabel)
+    #print "Unigrm NaiveBayes Result:"
+    #print "True Positive:  ", predictLabel[predictLabel == 1][predictLabel == nbTestData['sentiment']].count()
+    #print "False Positive: ", predictLabel[predictLabel == 1][predictLabel != nbTestData['sentiment']].count()
+    #print "True Negative:  ", predictLabel[predictLabel == 0][predictLabel == nbTestData['sentiment']].count()
+    #print "False Negative: ", predictLabel[predictLabel == 0][predictLabel != nbTestData['sentiment']].count()
     return predictLabel
+
+def print_result(predictLabel):
+    """
+    Calculate and print the accuracies (accuracy, precision, recall, and F1 score).
+    """
+    tp = predictLabel[predictLabel == 1][predictLabel == nbTestData['sentiment']].count()
+    fp = predictLabel[predictLabel == 1][predictLabel != nbTestData['sentiment']].count()
+    tn = predictLabel[predictLabel == 0][predictLabel == nbTestData['sentiment']].count()
+    fn = predictLabel[predictLabel == 0][predictLabel != nbTestData['sentiment']].count()
+    accuracy = (tp+tn) / (tp+fp+tn+fn)
+    precision = tp / (tp+fp)
+    recall = tp / (tp+fn)
+    f1 = 2((precision*recall) / (precision+recall))
+    print("=====================================================")
+    print("Results:")
+    print("  Accuracy: ", accuracy)
+    print("  Precision: ", precision)
+    print("  Recall: ", recall)
+    print("  F1 score: ", f1)
 
 def disc_feats_NB(training):
     ham = [(k, training[0][k]) for k in sorted(training[0], key=training[0].get, reverse=True)]
@@ -159,31 +180,27 @@ def logistic_regression(data, testData, wordsIndex, args_tf_idf):
 
 def init():
     parser = argparse.ArgumentParser(description="Specify feature types")
-    parser.add_argument("-u", "--unigram", help="activate the unigram feature",
-                      action="store_true")
-    parser.add_argument("-b", "--bigram", help="activate the bigram feature",
-                      action="store_true")
-    parser.add_argument("-l", "--liwc", help="activate the LIWC feature",
-                      action="store_true")
-    parser.add_argument("-a", "--all", help="create maximum combos and pickle each",
-                      action="store_true")
-    parser.add_argument("-t", "--tfidf", help="use tfidf frequency count",
-                      action="store_true")
-    parser.add_argument("-un", "--uni_naive_bayes", help="use naive bayes classifier",
+    # Options to select the classifier:
+    parser.add_argument("-nb", "--naive_bayes", help="use naive bayes classifier",
                       action="store_true")
     parser.add_argument("-lr", "--logistic_regression", help="use naive bayes classifier",
                       action="store_true")
+    parser.add_argument("-svm", "--SVM", help="use support vector classifier",
+                      action="store_true")
+    parser.add_argument("-t", "--train", help="the name of the pickled feature file")
+    parser.add_argument("-s", "--test", help="the name of the pickled feature file")
+    parser.add_argument("-w", "--wordsindex", help="the name of the pickled feature file")
     return parser.parse_args()
+
 if( __name__ == '__main__'):
     #load feature vectors
     args = init()
-    sys.argv
-    data = pd.read_pickle('jar_of_/train_features-a.pkl')
-    testData = pd.read_pickle('jar_of_/test_features-a.pkl')
-    wordsIndex = pickle.load(open('jar_of_/train_wordsIndex-a.pkl'))
-    if args.uni_naive_bayes:
-        nbTestData = naive_bayes(data, testData, wordsIndex)
-    if args.logistic_regression:
-        lrTestData = logistic_regression(data, testData, wordsIndex, args.tfidf)
+    train_data = pd.read_pickle(args.train)
+    test_data = pd.read_pickle(args.test)
+    wordsIndex = pickle.load(open(args.words_index))
+
+    if args.naive_bayes:
+        nbTestData = naive_bayes(train_data, test_Data, args)
+
 
 
