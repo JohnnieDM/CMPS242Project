@@ -123,35 +123,29 @@ def naive_bayes(data, testData):
     # run test
 
     predictLabel = testData.apply(apply_naive_bayes, axis=1)
-
-    # Print accuracies
-    print_result(predictLabel)
-    #print "NaiveBayes Result:"
-    #print "True Positive:  ", predictLabel[predictLabel == 1][predictLabel == testData['sentiment']].count()
-    #print "False Positive: ", predictLabel[predictLabel == 1][predictLabel != testData['sentiment']].count()
-    #print "True Negative:  ", predictLabel[predictLabel == 0][predictLabel == testData['sentiment']].count()
-    #print "False Negative: ", predictLabel[predictLabel == 0][predictLabel != testData['sentiment']].count()
+    print_result(predictLabel, testData)
     return predictLabel
 
 
-def print_result(predictLabel):
+def print_result(predictLabel, testData):
     """
     Calculate and print the accuracies (accuracy, precision, recall, and F1 score).
     """
-    tp = predictLabel[predictLabel == 1][predictLabel == nbTestData['sentiment']].count()
-    fp = predictLabel[predictLabel == 1][predictLabel != nbTestData['sentiment']].count()
-    tn = predictLabel[predictLabel == 0][predictLabel == nbTestData['sentiment']].count()
-    fn = predictLabel[predictLabel == 0][predictLabel != nbTestData['sentiment']].count()
+    tp = predictLabel[predictLabel == 1][predictLabel == testData['sentiment']].count() + 0.0
+    fp = predictLabel[predictLabel == 1][predictLabel != testData['sentiment']].count() + 0.0
+    tn = predictLabel[predictLabel == 0][predictLabel == testData['sentiment']].count() + 0.0
+    fn = predictLabel[predictLabel == 0][predictLabel != testData['sentiment']].count() + 0.0
     accuracy = (tp+tn) / (tp+fp+tn+fn)
     precision = tp / (tp+fp)
     recall = tp / (tp+fn)
-    f1 = 2((precision*recall) / (precision+recall))
-    print("=====================================================")
-    print("Results:")
-    print("  Accuracy: ", accuracy)
-    print("  Precision: ", precision)
-    print("  Recall: ", recall)
-    print("  F1 score: ", f1)
+    f1 = 2*((precision*recall) / (precision+recall))
+    print "====================================================="
+    print "Results:"
+    print "  Accuracy:\t", accuracy
+    print "  Precision:\t", precision
+    print "  Recall:\t", recall
+    print "  F1 score:\t", f1
+    print "====================================================="
 
 def logistic_regression(data, testData, wordsIndex, args_tf_idf):
     row = []
@@ -236,15 +230,17 @@ def disc_feats_NB(training):
 def init():
     parser = argparse.ArgumentParser(description="Specify feature types")
     # Options to select the classifier:
-    parser.add_argument("-nb", "--naive_bayes", help="use naive bayes classifier",
-                      action="store_true")
-    parser.add_argument("-lr", "--logistic_regression", help="use naive bayes classifier",
-                      action="store_true")
-    parser.add_argument("-svm", "--SVM", help="use support vector classifier",
-                      action="store_true")
-    parser.add_argument("-t", "--train", help="the name of the pickled feature file")
-    parser.add_argument("-s", "--test", help="the name of the pickled feature file")
-    parser.add_argument("-w", "--wordsindex", help="the name of the pickled feature file")
+    parser.add_argument("-c", "--classifier", required=True)
+    #parser.add_argument("-nb", "--naive_bayes", help="use Naive Bayes classifier",
+    #                  action="store_true")
+    #parser.add_argument("-lr", "--logistic_regression", help="use Logistic Regression classifier",
+    #                  action="store_true")
+    #parser.add_argument("-svm", "--SVM", help="use Support Vector classifier",
+    #                  action="store_true")
+    parser.add_argument("-t", "--train", help="the name of the pickled feature file", required=True)
+    parser.add_argument("-s", "--test", help="the name of the pickled feature file", required=True)
+    parser.add_argument("-w", "--word_index", help="the index of words", required=True)
+    parser.add_argument("-r", "--rev_word_index", help="the reversed index of words", required=True)
     return parser.parse_args()
 
 if( __name__ == '__main__'):
@@ -252,13 +248,15 @@ if( __name__ == '__main__'):
     args = init()
     train_data = pd.read_pickle(args.train)
     test_data = pd.read_pickle(args.test)
-    words_index = pickle.load(open(args.words_index))
-    rev_words_index = pickle.load(open(args.rev_words_index))
+    words_index = pickle.load(open(args.word_index))
+    rev_words_index = pickle.load(open(args.rev_word_index))
 
-    if args.naive_bayes:
-        nbTestData = naive_bayes(data, test_data)
-    if args.logistic_regression:
-        lrTestData = logistic_regression(data, test_data, words_index, rev_words_index)
+    if args.classifier == "nb":
+    #if args.naive_bayes:
+        nbTestData = naive_bayes(train_data, test_data)
+    if args.classifier == "lr":
+    #if args.logistic_regression:
+        lrTestData = logistic_regression(train_data, test_data, words_index, rev_words_index)
 
 
 
