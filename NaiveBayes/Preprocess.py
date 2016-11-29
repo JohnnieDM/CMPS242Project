@@ -253,7 +253,7 @@ if __name__ == "__main__":
   generate_ngram_feats(args.unigram, args.bigram, args.tfidf, test_review)
   if args.liwc:
       add_liwc_features(train_review)
-
+      add_liwc_features(test_review)
 
 
   # Merge business and review DataFrames.

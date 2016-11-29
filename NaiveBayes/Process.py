@@ -131,6 +131,14 @@ def naive_bayes(data, testData):
     #print "False Positive: ", predictLabel[predictLabel == 1][predictLabel != testData['sentiment']].count()
     #print "True Negative:  ", predictLabel[predictLabel == 0][predictLabel == testData['sentiment']].count()
     #print "False Negative: ", predictLabel[predictLabel == 0][predictLabel != testData['sentiment']].count()
+    disc_feats_NB(bow)
+
+    # print accuracy
+    print "NaiveBayes Result:"
+    print "True Positive:  ", predictLabel[predictLabel == 1][predictLabel == testData['sentiment']].count()
+    print "False Positive: ", predictLabel[predictLabel == 1][predictLabel != testData['sentiment']].count()
+    print "True Negative:  ", predictLabel[predictLabel == 0][predictLabel == testData['sentiment']].count()
+    print "False Negative: ", predictLabel[predictLabel == 0][predictLabel != testData['sentiment']].count()
     return predictLabel
 
 
@@ -193,6 +201,7 @@ def logistic_regression(data, testData, wordsIndex, args_tf_idf):
 
     logreg = linear_model.LogisticRegression(dual=True, C=1e-9)
     logreg.fit(X, Y)
+
     predictLabel = logreg.predict(testX)
     print "Logistic Regression Result:"
     true = predictLabel[predictLabel == testY]
@@ -202,6 +211,32 @@ def logistic_regression(data, testData, wordsIndex, args_tf_idf):
     print "True Negative:  ", true[true == 0].shape[0]
     print "False Negative: ", false[false == 0].shape[0]
     return predictLabel
+
+def disc_feats_NB(training):
+    ham = [(k, training[0][k]) for k in sorted(training[0], key=training[0].get, reverse=True)]
+    spam = [(k, training[1][k]) for k in sorted(training[1], key=training[1].get, reverse=True)]
+
+    ham = dict(ham[:100])
+    spam = dict(spam[:100])
+
+    rm_key = []
+
+    for k in ham.keys():
+        if k in spam.keys():
+            rm_key.append(k)
+
+    for rm in rm_key:
+        del ham[rm]
+        del spam[rm]
+
+    ham = [(k, ham[k]) for k in sorted(ham, key=ham.get, reverse=True)]
+    spam = [(k, spam[k]) for k in sorted(spam, key=spam.get, reverse=True)]
+
+    print("Top positive features:")
+    print(spam)
+    print("Top negative features:")
+    print(ham)
+
 
 def init():
     parser = argparse.ArgumentParser(description="Specify feature types")
