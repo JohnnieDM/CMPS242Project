@@ -30,7 +30,7 @@ def get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activate
         tempDict = {}
         for words in bi_tokens:
             tempDict[words] = tempDict.get(word, 0) + 1
-        tempDict = {k: float(v) / (len(bi_tokens)*TFDict[k[0]]) for k, v in tempDict.iteritems()}
+        tempDict = {k: float(v) / (len(bi_tokens)) for k, v in tempDict.iteritems()}
         if unigram_activated:
           TFDict.update(tempDict)
         else:
