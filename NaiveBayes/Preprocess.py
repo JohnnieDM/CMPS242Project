@@ -54,6 +54,7 @@ def get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activate
     review['frequency'] = TF_IDFDict
   return review
 
+
 def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, review):
   """
   Generate the n-gram features that are activated.
@@ -108,7 +109,7 @@ def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, 
   wordsIndex = {k: i for i, k in enumerate(unique_uni | unique_bi)}
   revWordsIndex = {i: k for i, k in enumerate(unique_uni | unique_bi)}
 
-  return wordsIndex, revWordsIndex
+  return review, wordsIndex, revWordsIndex
 
 
 def add_liwc_features(review):
@@ -145,9 +146,16 @@ def add_liwc_features(review):
           liwc_dict[key] = {"liwc:positive":1}
       else:
           liwc_dict[key] = {"liwc:negative":1}
+  def add_liwc_to_frequency(row):
+      if 'frequency' in row:
+        row['frequency'].update(row['liwc'])
+      else:
+        row['frequency'] = row['liwc']
 
-  review['liwc'] = pd.Series(liwc_dict)
-  #print review
+  review['liwc'] = pd.Series(liwc_dict).reset_index(drop=True)
+  review.reset_index(drop=True)
+  review.apply(add_liwc_to_frequency, axis=1)
+  return review
 
 
 def getData():
@@ -246,14 +254,17 @@ if __name__ == "__main__":
 
   # Feature: Generate unigram and bigram features if activated.
   # Also collect set of tokens in all reviews.
-  train_index = generate_ngram_feats(args.unigram, args.bigram, args.tfidf, train_review)
-  if train_index != None:
-    pickle.dump(train_index[0], open('jar_of_/train_wordsIndex'+''.join(sorted(sys.argv[1:]))+'.pkl', 'wb'))
-    pickle.dump(train_index[1], open('jar_of_/train_revWordsIndex' + ''.join(sorted(sys.argv[1:])) + '.pkl', 'wb'))
-  generate_ngram_feats(args.unigram, args.bigram, args.tfidf, test_review)
+  train = generate_ngram_feats(args.unigram, args.bigram, args.tfidf, train_review)
+  if train != None:
+    train_review = train[0]
+    pickle.dump(train[1], open('jar_of_/train_wordsIndex'+''.join(sorted(sys.argv[1:]))+'.pkl', 'wb'))
+    pickle.dump(train[2], open('jar_of_/train_revWordsIndex' + ''.join(sorted(sys.argv[1:])) + '.pkl', 'wb'))
+  test = generate_ngram_feats(args.unigram, args.bigram, args.tfidf, test_review)
+  if test != None:
+      test_review = test[0]
   if args.liwc:
-      add_liwc_features(train_review)
-      add_liwc_features(test_review)
+      train_review = add_liwc_features(train_review)
+      test_review = add_liwc_features(test_review)
 
 
   # Merge business and review DataFrames.
