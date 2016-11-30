@@ -147,7 +147,7 @@ def print_result(predictLabel, testData):
     print "  F1 score:\t", f1
     print "====================================================="
 
-def logistic_regression(data, testData, wordsIndex, args_tf_idf):
+def logistic_regression(data, testData, wordsIndex, revWordsIndex):
     row = []
     col = []
     value = []
@@ -230,7 +230,7 @@ def disc_feats_NB(training):
 def init():
     parser = argparse.ArgumentParser(description="Specify feature types")
     # Options to select the classifier:
-    parser.add_argument("-c", "--classifier", help="the type of classifier to train (nb for Naive Bayes,
+    parser.add_argument("-c", "--classifier", help="the type of classifier to train (nb for Naive Bayes,\
                         lr for Logistic Regression, and svm for Support Vector Machine)", required=True)
     parser.add_argument("-t", "--train", help="the name of the pickled feature file", required=True)
     parser.add_argument("-s", "--test", help="the name of the pickled feature file", required=True)
