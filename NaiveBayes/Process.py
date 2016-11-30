@@ -96,7 +96,6 @@ def naive_bayes(data, testData):
         bow[1].update(uni_bow[1])
 
     if 'bi_tokens' in data.columns:
-        print "hi"
         nb_data = data[['bi_tokens', 'sentiment']]
 
         bi_bow = [{}, {}]
@@ -228,9 +227,9 @@ def disc_feats_NB(training):
 
 
 def init():
-    parser = argparse.ArgumentParser(description="Specify feature types")
+    parser = argparse.ArgumentParser(description="Train specified type of classifier given feature files")
     # Options to select the classifier:
-    parser.add_argument("-c", "--classifier", help="the type of classifier to train (nb for Naive Bayes,
+    parser.add_argument("-c", "--classifier", help="the type of classifier to train (nb for Naive Bayes,\
                         lr for Logistic Regression, and svm for Support Vector Machine)", required=True)
     parser.add_argument("-t", "--train", help="the name of the pickled feature file", required=True)
     parser.add_argument("-s", "--test", help="the name of the pickled feature file", required=True)
