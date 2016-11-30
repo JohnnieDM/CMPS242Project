@@ -146,7 +146,7 @@ def print_result(predictLabel, testData):
     print "  F1 score:\t", f1
     print "====================================================="
 
-def logistic_regression(data, testData, wordsIndex, args_tf_idf):
+def logistic_regression(data, testData, wordsIndex, revWordsIndex):
     row = []
     col = []
     value = []
