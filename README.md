@@ -8,6 +8,19 @@ Tools we need:
 ```
 sudo pip install pandas
 ```
+- nltk
+```
+sudo pip install nltk
+```
+- download packages in nltk
+```
+>>> import nltk
+>>> nltk.download()
+```
+- scikit-learn for comparison
+```
+sudo pip install -U scikit-learn
+```
 Data we need:
 - yelp_academic_dataset_business.json
 - yelp_academic_dataset_review.json
@@ -19,6 +32,7 @@ Use these two commands on the shell.
 python json_to_csv_converter.py yelp_academic_dataset_business.json
 python json_to_csv_converter.py yelp_academic_dataset_review.json
 ```
+Put these two files into 'data' directory.
 Then run Preprocess.py to generate pickled feature files.
 Here we randomly sample 1% of the dataset, since processing the entire dataset would take too much time.
 Optionally give flags (-u, -b, -l, -a, -t) to select the features to use.
@@ -30,23 +44,20 @@ For instance, run the command below to generate feature files using unigrams, LI
 ```
 python Preprocess.py -u -l -t
 ```
-Then find the following feature files:
+Then find all the features file will be put into the directory
 ```
-jar_of_/train_features-l-t-u.pkl
-jar_of_/train_revWordsIndex-l-t-u.pkl
-jar_of_/train_wordsIndex-l-t-u.pkl
-jar_of_/test_features-l-t-u.pkl
+jar_of_/pickle-l-t-u
 ```
 
 ##Modeling and Prediction
-Run the file Process.py with required keyword arguments (-c, -t, -s, -w, -r) to train a model and predict.
+Run the file Process.py with required keyword arguments (-c, -d) to train a model and predict.
 Run the following command to detailed messages about the required arguments.
 ```
 python Process.py -h
 ```
 For instance, run the command below to build a Naive Bayes classifier trained on the features selected above (unigrams, LIWC scores, and TF-IDF frequency).
 ```
-python Process.py -c nb -t jar_of_/train_features-l-t-u.pkl -s jar_of_/test_features-l-t-u.pkl -w jar_of_/train_wordsIndex-l-t-u.pkl -r jar_of_/train_revWordsIndex-l-t-u.pkl
+python Process.py -c nb -d jar_of_/pickle-l-t-u
 ```
 The prediction result will be printed to sys.stdout as follows, showing the accuracy, precision, recall, and F1 score:
 ```

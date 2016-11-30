@@ -12,6 +12,7 @@ import pickle
 from scipy.sparse import csr_matrix
 import sys
 import word_category_counter
+from sklearn import svm
 
 def naive_bayes(data, testData):
 
@@ -72,10 +73,6 @@ def naive_bayes(data, testData):
         else:
             t = 0
         return t
-
-    nbData = data[['uni_tokens', 'sentiment']]
-    nbData_1 = nbData[nbData.sentiment == 1]
-    nbData_0 = nbData[nbData.sentiment == 0]
 
     # number of docs
     n = data.count()[0]
@@ -163,8 +160,7 @@ def print_result(predictLabel, testLabel):
     print "  Recall:\t", recall
     print "  F1 score:\t", f1
     print "====================================================="
-
-def logistic_regression(data, testData, wordsIndex, revWordsIndex):
+def generate_matrix(data, testData, wordsIndex):
     row = []
     col = []
     value = []
@@ -196,6 +192,28 @@ def logistic_regression(data, testData, wordsIndex, revWordsIndex):
 
     testX = csr_matrix((value, (row, col)), shape=(frequency.count(), len(wordsIndex)))
     testY = testData['sentiment'].as_matrix()
+    return X, Y, testX, testY
+
+
+def generate_svm(data, testData, wordsIndex):
+    X, Y, testX, testY = generate_matrix(data, testData, wordsIndex)
+
+    penalty = 1.
+
+    gamma_svm = 1.
+
+    # Training and testing for each value of gamma
+    #clf = svm.SVC(kernel='rbf', C=penalty, gamma=gamma_svm)
+    print(' svm is fitting now...')
+    clf = svm.SVC(kernel='linear')
+    clf.fit(X, Y)
+    predictLabel = clf.predict(testX)
+    print_result(predictLabel, testY)
+    return predictLabel
+
+
+def logistic_regression(data, testData, wordsIndex, revWordsIndex):
+    X, Y, testX, testY = generate_matrix(data, testData, wordsIndex)
 
     logreg = linear_model.LogisticRegression(dual=True, C=1e-9)
     logreg.fit(X, Y)
@@ -260,6 +278,6 @@ if( __name__ == '__main__'):
     if args.classifier == "lr":
         lrTestData = logistic_regression(train_data, test_data, words_index, rev_words_index)
     if args.classifier == "svm":
-        pass
+        svmTestData = generate_svm(train_data, test_data, words_index)
 
 
