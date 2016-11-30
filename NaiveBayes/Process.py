@@ -11,8 +11,10 @@ from sklearn import linear_model
 import pickle
 from scipy.sparse import csr_matrix
 import sys
+import word_category_counter
 
 def naive_bayes(data, testData):
+
     def count_uni_words(row):
         Class = row[1]
         for word in row[0]:
@@ -27,6 +29,16 @@ def naive_bayes(data, testData):
     def apply_naive_bayes(row):
         sumOfClass1 = 0
         sumOfClass2 = 0
+        if 'liwc' in row:
+            liwc_scores = word_category_counter.score_text(row['text'])
+            # liwc_dict[key] = liwc_scores
+            negative_score = liwc_scores["Negative Emotion"]
+            positive_score = liwc_scores["Positive Emotion"]
+            if positive_score > negative_score:
+                sumOfClass1 += bow['liwc:positive']
+            else:
+                sumOfClass2 += bow["liwc:negative"]
+
         if 'uni_tokens' in row:
             uni_tokens = row['uni_tokens']
             # algorithm
@@ -36,7 +48,7 @@ def naive_bayes(data, testData):
                 else:
                     sumOfClass1 += math.log(1.0 / (uni_n_words_[1] + uni_unique_words), 10)
 
-                if word in uni_bow[0]:
+                if word in bow[0]:
                     sumOfClass2 += math.log(bow[0][word], 10)
                 else:
                     sumOfClass2 += math.log(1.0 / (uni_n_words_[0] + uni_unique_words), 10)
@@ -49,7 +61,7 @@ def naive_bayes(data, testData):
                 else:
                     sumOfClass1 += math.log(1.0 / (bi_n_words_[1] + bi_unique_words), 10)
 
-                if word in uni_bow[0]:
+                if word in bow[0]:
                     sumOfClass2 += math.log(bow[0][word], 10)
                 else:
                     sumOfClass2 += math.log(1.0 / (bi_n_words_[0] + bi_unique_words), 10)
@@ -75,6 +87,9 @@ def naive_bayes(data, testData):
     prior = [n_[0] / float(n), n_[1] / float(n)]
 
     bow = [{},{}]
+    if 'liwc' in data.columns:
+        bow[0].update({"liwc:negative":1})
+        bow[1].update({"liwc:positive": 1})
     if 'uni_tokens' in data.columns:
         nb_data = data[['uni_tokens', 'sentiment']]
 
