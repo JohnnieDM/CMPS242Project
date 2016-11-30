@@ -239,7 +239,7 @@ def disc_feats_NB(training):
 
 
 def init():
-    parser = argparse.ArgumentParser(description="Train specified type of classifier given feature files")
+    parser = argparse.ArgumentParser(description="Specify feature types")
     # Options to select the classifier:
     parser.add_argument("-c", "--classifier", help="the type of classifier to train (nb for Naive Bayes,\
                         lr for Logistic Regression, and svm for Support Vector Machine)", required=True)
