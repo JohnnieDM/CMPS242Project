@@ -192,14 +192,14 @@ def getData():
     train_review = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_train_review.pkl"))
   else:
     train_review = pd.read_csv(os.path.join(os.getcwd(), "data", 'yelp_academic_dataset_review.csv'), encoding='utf-8')[['business_id', 'stars', 'text']].sample(
-      frac=.1, replace=False)
+      frac=.05, replace=False)
     train_review.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_train_review.pkl"))
 
   if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_test_review.pkl")):
     test_review = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_test_review.pkl"))
   else:
     test_review = pd.read_csv(os.path.join(os.getcwd(), "data", 'yelp_academic_dataset_review.csv'), encoding='utf-8')[['business_id', 'stars', 'text']].sample(
-      frac=.02, replace=False)
+      frac=.01, replace=False)
     test_review.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_test_review.pkl"))
 
   if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl")):
