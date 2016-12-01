@@ -1,0 +1,21 @@
+Kevin Bowden, kkbowden@ucsc.edu
+Johnnie Chang, cchan60@ucsc.edu
+Robert Chen, hchen118@ucsc.edu
+Bernardo Gonzalez, beaugonz@ucsc.edu
+
+Project Work Distribution
+We will now provide a summary of how the work was distributed for the project. We primarily
+work as a team effort. Generally, all four of us met once a week, if not in person then remotely,
+to discuss the project and how we intend to progress. As a team we decided on our proposal,
+and all four of us worked equally on the project reports. Johnnie set up our initial repository,
+and Robert found and added the data wrangling script we use in our project.
+He and Bernardo also created the framework for our Naïve Bayes classifier and the preprocessing steps.
+Johnnie and Kevin have had experience with other NLP work in the past, so they were responsible
+for implementing the LIWC functionality, Bigrams, and Unigrams. Once we started to hit the core
+of our code base we divided our tasks more; Robert added support for the scikit-learn logistic
+regression model as well as the TF-IDF calculation, Bernardo added support for the scikit-learn SVM model,
+Johnnie set up the driver functionality and the README file, Kevin built the function to get the most
+discriminative features and verified documentation through the code. As a team we all performed a code
+walk in which we cleaned up our code, performed unit testing, and optimized our system architecture.
+Even though one of our members could not run the code, due to physical restrictions on their machine,
+all members were present to see the output and perform group analysis.
