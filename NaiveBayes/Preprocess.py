@@ -9,13 +9,13 @@ import word_category_counter
 import os
 import pickle
 
+# Set of stopwords from NLTK
 stops = set([str(w) for w in stopwords.words('english')])
 
 def get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activated):
-  """
-  Args:
-      (dataFrame) df: review dataframe including tokens of each file
-      (list) tokens for whole files
+  """Compute n-gram frequencies and add columns.
+  :param review: DataFrame including tokens of each file
+      (list) tokens for whole files @TODO what?
   Returns:
       (dataFrame) dataframe for frequency
   """
@@ -54,18 +54,26 @@ def get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activate
     review['frequency'] = TF_IDFDict
   return review
 
-
 def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, review):
+  """ Generate the n-gram features that are activated.
+  Add columns for unigram tokens and bigram tokens to the DataFrame review,
+  and add the frequencies (unigram) and conditional frequencies (bigram).
+  TF-IDF frequency is used if tf_idf_activated is True,
+  otherwise regular frequency is used.
+  Returns the modified review and .
+
+  :type unigram_activated: boolean
+  :type bigram_activated: boolean
+  :type tf_idf_activated: boolean
+  :type review: DataFrame
+  :param review: 2-D DataFrame where rows are reviews, and columns include 'text'.
   """
-  Generate the n-gram features that are activated.
-  Add columns for unigram tokens and bigram tokens,
-  compute the frequencies (unigram) and conditional frequencies (bigram),
-  and add these as columns.
-  Returns lists of unique tokens for unigrams and bigrams.
-  """
+  # Only perform the processing if at least one n-gram feature is activated.
   if not (unigram_activated or bigram_activated):
     return
 
+  # Collect n-grams. We use NLTK sent_tokenize() for sentence tokenization.
+  # We split words by spaces, lower-case all words, and remove all punctuation and stopwords.
   texts = review['text'].to_dict()
   unigram_dict = {}
   bigram_dict = {}
@@ -75,6 +83,7 @@ def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, 
   unique_bi  = set()
   for key, text in texts.items():
     count+=1
+    # Print the progress to sys.stdout.
     if count % 1000 == 1:
       sys.stdout.write("%2.f" % (100.0 * count/size) + '%, completed: '+str(count)+'/'+str(size)+'\r')
       sys.stdout.flush()
@@ -103,9 +112,7 @@ def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, 
   review = review.reset_index(drop=True)
 
   # Add columns of frequencies.
-  # Turn sets of unique tokens into sorted lists for frequency computation.
   review = get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activated)
-  #print review
   wordsIndex = {k: i for i, k in enumerate(unique_uni | unique_bi)}
   revWordsIndex = {i: k for i, k in enumerate(unique_uni | unique_bi)}
 
@@ -221,7 +228,11 @@ def pickMaxCat():
 
 
 
-def init():
+def get_args():
+  """Parse command line arguments.
+  Each argument is parsed as a boolean which defaults to False when not given.
+  """
+
   parser = argparse.ArgumentParser(description="Specify feature types")
   parser.add_argument("-u", "--unigram", help="activate the unigram feature",
                       action="store_true")
@@ -231,14 +242,10 @@ def init():
                       action="store_true")
   parser.add_argument("-a", "--all", help="create maximum combos and pickle each",
                       action="store_true")
-  parser.add_argument("-t", "--tfidf", help="use tfidf frequency count",
+  parser.add_argument("-t", "--tfidf", help="use TF-IDF frequency count",
                       action="store_true")
-  return parser.parse_args()
 
-
-if __name__ == "__main__":
-  args = init()
-  # Each argument is parsed as a boolean which defaults to False when not given.
+  args = parser.parse_args()
   if args.all:
       args.unigram, args.bigram, args.liwc, args.tfidf = True, True, True, True
   if args.unigram:
@@ -249,6 +256,11 @@ if __name__ == "__main__":
     print "LIWC feature activated"
   if args.tfidf:
     print "Tf-Idf feature activated"
+  return args
+
+
+if __name__ == "__main__":
+  args = get_args()
 
   train_review, test_review, business, categories, train_sentiment, test_sentiment = getData()
   if not os.path.exists(os.path.join(os.getcwd(), "jar_of_", "pickle" + ''.join(sorted(sys.argv[1:])))):
@@ -270,7 +282,6 @@ if __name__ == "__main__":
   if args.liwc:
       train_review = add_liwc_features(train_review)
       test_review = add_liwc_features(test_review)
-
 
   # Merge business and review DataFrames.
   mergeBusRev = pd.merge(business, train_review, on='business_id')
