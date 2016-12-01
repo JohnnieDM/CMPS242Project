@@ -75,8 +75,6 @@ def naive_bayes(data, testData):
         return t
 
     nbData = data[['uni_tokens', 'sentiment']]
-    nbData_1 = nbData[nbData.sentiment == 1]
-    nbData_0 = nbData[nbData.sentiment == 0]
 
     # number of docs
     n = data.count()[0]
@@ -88,9 +86,11 @@ def naive_bayes(data, testData):
     prior = [n_[0] / float(n), n_[1] / float(n)]
 
     bow = [{},{}]
+    #account for liwc...
     if 'liwc' in data.columns:
         bow[0].update({"liwc:negative":1})
         bow[1].update({"liwc:positive": 1})
+    #account for unigrams...
     if 'uni_tokens' in data.columns:
         nb_data = data[['uni_tokens', 'sentiment']]
 
@@ -110,7 +110,7 @@ def naive_bayes(data, testData):
                 uni_bow[i][word] = (float(uni_bow[i][word]) + 1) / (uni_n_words_[i] + uni_unique_words)
         bow[0].update(uni_bow[0])
         bow[1].update(uni_bow[1])
-
+    #account for bigrams...
     if 'bi_tokens' in data.columns:
         nb_data = data[['bi_tokens', 'sentiment']]
 
@@ -200,7 +200,14 @@ def generate_matrix(data, testData, wordsIndex):
 
 
 def generate_svm(data, testData, wordsIndex):
-    print "hi"
+    """
+    Args:
+        data: data
+        testData: testdata
+        wordsIndex: index of the words within datafram
+    Returns:
+        svm model
+    """
     X, Y, testX, testY = generate_matrix(data, testData, wordsIndex)
 
     penalty = 1.
@@ -209,7 +216,6 @@ def generate_svm(data, testData, wordsIndex):
 
     # Training and testing for each value of gamma
     clf = svm.SVC(kernel='rbf', C=penalty, gamma=gamma_svm)
-    # clf = svm.SVC(kernel='linear')
     clf.fit(X, Y)
     predictLabel = clf.predict(testX)
     print_result(predictLabel, testY)
@@ -217,6 +223,15 @@ def generate_svm(data, testData, wordsIndex):
 
 
 def logistic_regression(data, testData, wordsIndex, revWordsIndex):
+    """
+        Args:
+            data: data
+            testData: testdata
+            wordsIndex: index of the words within dataframe
+            revWordsIndex: index of words from the review dataframe
+        Returns:
+            lr model
+        """
     X, Y, testX, testY = generate_matrix(data, testData, wordsIndex)
 
     logreg = linear_model.LogisticRegression(dual=True, C=1e-9)
@@ -226,7 +241,7 @@ def logistic_regression(data, testData, wordsIndex, revWordsIndex):
     coef = coef.tolist()
     coef = [(i,coef[i]) for i in range(len(coef))]
     coef = sorted(coef, key=lambda x: x[1], reverse=True)
-    print "The 10 most discriminative words"
+    print "The 10 most discriminative words via log reg"
     print revWordsIndex[coef[0][0]], revWordsIndex[coef[1][0]], revWordsIndex[coef[2][0]], revWordsIndex[coef[3][0]],\
         revWordsIndex[coef[4][0]], revWordsIndex[coef[5][0]], revWordsIndex[coef[6][0]], revWordsIndex[coef[7][0]],\
         revWordsIndex[coef[8][0]], revWordsIndex[coef[9][0]]
@@ -234,33 +249,42 @@ def logistic_regression(data, testData, wordsIndex, revWordsIndex):
     print_result(predictLabel, testY)
     return predictLabel
 
-def disc_feats_NB(training):
-    ham = [(k, training[0][k]) for k in sorted(training[0], key=training[0].get, reverse=True)]
-    spam = [(k, training[1][k]) for k in sorted(training[1], key=training[1].get, reverse=True)]
+def disc_feats_NB(training_data):
+    """
+    Args:
+        training_data: the training features
+    Returns:
+        the top most discriminating features.
+    """
+    neg = [(k, training_data[0][k]) for k in sorted(training_data[0], key=training_data[0].get, reverse=True)]
+    pos = [(k, training_data[1][k]) for k in sorted(training_data[1], key=training_data[1].get, reverse=True)]
 
-    ham = dict(ham[:100])
-    spam = dict(spam[:100])
+    neg = dict(neg[:1000])
+    pos = dict(pos[:1000])
 
+    #remove overlapping words
     rm_key = []
-
-    for k in ham.keys():
-        if k in spam.keys():
+    for k in neg.keys():
+        if k in pos.keys():
             rm_key.append(k)
-
     for rm in rm_key:
-        del ham[rm]
-        del spam[rm]
+        del neg[rm]
+        del pos[rm]
 
-    ham = [(k, ham[k]) for k in sorted(ham, key=ham.get, reverse=True)]
-    spam = [(k, spam[k]) for k in sorted(spam, key=spam.get, reverse=True)]
+    neg = [(k, neg[k]) for k in sorted(neg, key=neg.get, reverse=True)]
+    pos = [(k, pos[k]) for k in sorted(pos, key=pos.get, reverse=True)]
 
     print("Top positive features:")
-    print(spam)
+    print(pos)
     print("Top negative features:")
-    print(ham)
+    print(neg)
 
 
 def init():
+    """
+    Returns:
+        the arg parse object for cmd line arguments
+    """
     parser = argparse.ArgumentParser(description="Train specified type of classifier given feature files")
     # Options to select the classifier:
     parser.add_argument("-c", "--classifier", help="the type of classifier to train (nb for Naive Bayes,\
@@ -273,17 +297,19 @@ if( __name__ == '__main__'):
     args = init()
     print args.classifier
     path = args.document
-    train_data = pd.read_pickle(os.path.join(path, 'train_features.pkl'))
-    test_data = pd.read_pickle(os.path.join(path, 'test_features.pkl'))
-    words_index = pickle.load(open(os.path.join(path, 'wordsIndex.pkl')))
-    rev_words_index = pickle.load(open(os.path.join(path, 'revWordsIndex.pkl')))
+    train_data = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", path, 'train_features.pkl'))
+    test_data = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", path, 'test_features.pkl'))
+    words_index = pickle.load(open(os.path.join(os.getcwd(), "jar_of_", path, 'wordsIndex.pkl')))
+    rev_words_index = pickle.load(open(os.path.join(os.getcwd(), "jar_of_", path, 'revWordsIndex.pkl')))
 
     if args.classifier == "nb":
+        print "nb classifier selected"
         nbTestData = naive_bayes(train_data, test_data)
     if args.classifier == "lr":
+        print "lr classifier selected"
         lrTestData = logistic_regression(train_data, test_data, words_index, rev_words_index)
     if args.classifier == "svm":
-        print "hi"
+        print "svm classifier selected"
         svmTestData = generate_svm(train_data, test_data, words_index)
 
 

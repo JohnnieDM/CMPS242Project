@@ -1,6 +1,6 @@
 # CMPS242Project
 This is the class project for CMPS 242 using data from the Yelp Dataset Challenge.
-
+Currently we only support python 2, and anything less than 8GB of ram will crash.
 
 ## Preprocessing
 Tools we need:
@@ -57,9 +57,15 @@ python Process.py -h
 ```
 For instance, run the command below to build a Naive Bayes classifier trained on the features selected above (unigrams, LIWC scores, and TF-IDF frequency).
 ```
-python Process.py -c nb -d jar_of_/pickle-l-t-u
+python Process.py -c nb -d pickle-l-t-u
 ```
 The prediction result will be printed to sys.stdout as follows, showing the accuracy, precision, recall, and F1 score:
+
+Recall = number of results returned
+Precision = number of correct results returned
+Fscore = weighted average of the precision and recall
+Accuracy = correctness with respect to the anotatted data
+
 ```
 =====================================================
 Results:
@@ -69,3 +75,6 @@ Results:
   F1 score:     0.856458090426
 =====================================================
 ```
+
+word_category_counter is a LIWC simulator script created and distributed within the NLDS lab. It uses the LIWC.dic data file to simulate
+the functionality of LIWC.

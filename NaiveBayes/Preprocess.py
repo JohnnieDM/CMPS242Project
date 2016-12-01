@@ -20,6 +20,12 @@ def get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activate
       (dataFrame) dataframe for frequency
   """
   def calculateTF(row):
+    """
+    Args:
+        row: the feature entry in our set of features
+    Returns:
+        TF value
+    """
     uni_tokens = row['uni_tokens']
     TFDict = {}
     for word in uni_tokens:
@@ -38,15 +44,28 @@ def get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activate
     return TFDict
   IDFDict = {}
   def calculateIDF(row):
+    """
+      Args:
+          row: the feature entry in our set of features
+      Returns:
+          IDF value
+      """
     unique_words = set(row['frequency'])
     for word in unique_words:
       IDFDict[word] = IDFDict.get(word, 0) + 1
   def calculateTF_IDF(row):
+    """
+    Args:
+        row:  the feature entry in our set of features
+    Returns:
+        Combines the TF and IDF value
+    """
     return {k: v * IDFDict[k] for k, v in row.items()}
 
   N = review.shape[0]
   review['frequency'] = review.apply(calculateTF, axis=1)
 
+  #if we want tf_idf calculate, else use the baseline frequency calculation
   if tf_idf_activated:
     review.apply(calculateIDF, axis=1)
     IDFDict = {k: float(N) / v for k, v in IDFDict.items()}
@@ -89,8 +108,10 @@ def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, 
       sys.stdout.flush()
     unigrams = []
     bigrams = []
+    #sent tokenize
     for sent in nltk.sent_tokenize(text):
       tokens = []
+      #word tokenize
       for word in re.findall('[^_^\d\W]+', sent):
         word = word.lower()
         if word not in stops:
@@ -113,6 +134,7 @@ def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, 
 
   # Add columns of frequencies.
   review = get_frequencies(review, unigram_activated, bigram_activated, tf_idf_activated)
+  #word index, used in LR and SVM
   wordsIndex = {k: i for i, k in enumerate(unique_uni | unique_bi)}
   revWordsIndex = {i: k for i, k in enumerate(unique_uni | unique_bi)}
 
@@ -122,30 +144,18 @@ def generate_ngram_feats(unigram_activated, bigram_activated, tf_idf_activated, 
 def add_liwc_features(review):
   """
   Args:
-      (string)text: some text input
-      (dict)feature_vector: a dict of features
+      (dataframe)review
 
   Returns:
-      Modified feature vector
+      the LIWC score of our file. Currently we say if Posemo > Negemo, the file is pos.
 
   """
-  # All possible keys to the scores start on line 269
-  # of the word_category_counter.py script
-  # for key in liwc_scores.keys():
-  #     feature_vector["liwc:"+key] = liwc_scores[key]
-  #
-  # negative_score = liwc_scores["Negative Emotion"]
-  # positive_score = liwc_scores["Positive Emotion"]
-  #
-  # if positive_score > negative_score:
-  #     feature_vector["liwc:positive"] = 1
-  # else:
-  #     feature_vector["liwc:negative"] = 1
   texts = review['text'].to_dict()
   liwc_dict = {}
   for key, text in texts.items():
+    # All possible keys to liwc_scores start on line 269
+    # of the word_category_counter.py script
       liwc_scores = word_category_counter.score_text(text)
-      # liwc_dict[key] = liwc_scores
       negative_score = liwc_scores["Negative Emotion"]
       positive_score = liwc_scores["Positive Emotion"]
 
@@ -153,6 +163,7 @@ def add_liwc_features(review):
           liwc_dict[key] = {"liwc:positive":1}
       else:
           liwc_dict[key] = {"liwc:negative":1}
+  #add liwc feature to existing feature
   def add_liwc_to_frequency(row):
       if 'frequency' in row:
         row['frequency'].update(row['liwc'])
@@ -166,18 +177,29 @@ def add_liwc_features(review):
 
 
 def getData():
+  """
+  Returns:
+    The data parsed from the csv files broken into a few different variables:
+    train_review = review frame for training data
+    test_review = review frame for test data
+    business = the business list from data
+    categories = different categories of business
+    train_sentiment = sentiment annotation for train set
+    test_sentiment = sentiment annotation for test set
+  """
+  #datafiles are stored as pickles to make load time not so expensive during dev
   if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_train_review.pkl")):
     train_review = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_train_review.pkl"))
   else:
     train_review = pd.read_csv(os.path.join(os.getcwd(), "data", 'yelp_academic_dataset_review.csv'), encoding='utf-8')[['business_id', 'stars', 'text']].sample(
-      frac=0.01, replace=False)
+      frac=.1, replace=False)
     train_review.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_train_review.pkl"))
 
   if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_test_review.pkl")):
     test_review = pd.read_pickle(os.path.join(os.getcwd(), "jar_of_", "default_test_review.pkl"))
   else:
     test_review = pd.read_csv(os.path.join(os.getcwd(), "data", 'yelp_academic_dataset_review.csv'), encoding='utf-8')[['business_id', 'stars', 'text']].sample(
-      frac=0.01, replace=False)
+      frac=.02, replace=False)
     test_review.to_pickle(os.path.join(os.getcwd(), "jar_of_", "default_test_review.pkl"))
 
   if os.path.exists(os.path.join(os.getcwd(), "jar_of_", "default_business.pkl")):
@@ -189,6 +211,7 @@ def getData():
   categories = business['categories']
   train_star = train_review['stars']
 
+  #sentiment classification is handled automatically using the stars. star rating of 0,1,2 is neg, 3,4,5 is pos
   train_sentiment = []
   for s in train_star:
     if s <= 2:
@@ -258,7 +281,6 @@ def get_args():
     print "Tf-Idf feature activated"
   return args
 
-
 if __name__ == "__main__":
   args = get_args()
 
@@ -270,18 +292,19 @@ if __name__ == "__main__":
   train = generate_ngram_feats(args.unigram, args.bigram, args.tfidf, train_review)
   if train != None:
     train_review = train[0]
+    #liwc data
     if args.liwc:
         wordsIndexSize = len(train[1])
         train[1].update({'liwc:positive': wordsIndexSize, 'liwc:negative': wordsIndexSize + 1})
         train[2].update({wordsIndexSize : 'liwc:positive', wordsIndexSize + 1 : 'liwc:negative'})
+        test_review = add_liwc_features(test_review)
+
+    #Store word index pickles for use in SVM or LR
     pickle.dump(train[1], open('jar_of_/pickle'+''.join(sorted(sys.argv[1:]))+'/wordsIndex.pkl', 'wb'))
     pickle.dump(train[2], open('jar_of_/pickle' + ''.join(sorted(sys.argv[1:])) + '/revWordsIndex.pkl', 'wb'))
   test = generate_ngram_feats(args.unigram, args.bigram, args.tfidf, test_review)
   if test != None:
       test_review = test[0]
-  if args.liwc:
-      train_review = add_liwc_features(train_review)
-      test_review = add_liwc_features(test_review)
 
   # Merge business and review DataFrames.
   mergeBusRev = pd.merge(business, train_review, on='business_id')
